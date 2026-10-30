@@ -1,0 +1,63 @@
+--- src/black/files.py	2026-10-30 15:28:15.223195+00:00
++++ src/black/files.py	2026-10-30 15:34:55.281008+00:00
+@@ -26,10 +26,11 @@
+     """
+     if "\n" in regex:
+         regex = "(?x)" + regex
+     compiled: Pattern[str] = re.compile(regex)
+     return compiled
++
+ 
+ if sys.version_info >= (3, 11):
+     try:
+         import tomllib
+     except ImportError:
+--- src/black/__init__.py	2026-10-30 15:28:15.208670+00:00
++++ src/black/__init__.py	2026-10-30 15:34:55.663749+00:00
+@@ -35,11 +35,24 @@
+     DEFAULT_EXCLUDES,
+     DEFAULT_INCLUDES,
+     DEFAULT_LINE_LENGTH,
+     STDIN_PLACEHOLDER,
+ )
+-from black.files import best_effort_relative_path, find_project_root, find_pyproject_toml, find_user_pyproject_toml, gen_python_files, get_gitignore, is_filesystem_root, parse_pyproject_toml, path_is_excluded, resolves_outside_root_or_cannot_stat, wrap_stream_for_windows, re_compile_maybe_verbose
++from black.files import (
++    best_effort_relative_path,
++    find_project_root,
++    find_pyproject_toml,
++    find_user_pyproject_toml,
++    gen_python_files,
++    get_gitignore,
++    is_filesystem_root,
++    parse_pyproject_toml,
++    path_is_excluded,
++    resolves_outside_root_or_cannot_stat,
++    wrap_stream_for_windows,
++    re_compile_maybe_verbose,
++)
+ from black.handle_ipynb_magics import (
+     PYTHON_CELL_MAGICS,
+     jupyter_dependencies_are_installed,
+     mask_cell,
+     put_trailing_semicolon_back,
+@@ -47,11 +60,19 @@
+     unmask_cell,
+     validate_cell,
+ )
+ from black.linegen import LN, LineGenerator, transform_line
+ from black.lines import EmptyLineTracker, LinesBlock
+-from black.mode import FUTURE_FLAG_TO_FEATURE, VERSION_TO_FEATURES, Feature, Mode as Mode, Preview, TargetVersion, supports_feature
++from black.mode import (
++    FUTURE_FLAG_TO_FEATURE,
++    VERSION_TO_FEATURES,
++    Feature,
++    Mode as Mode,
++    Preview,
++    TargetVersion,
++    supports_feature,
++)
+ from black.nodes import STARS, is_number_token, is_simple_decorator_expression, syms
+ from black.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
+ from black.parsing import (  # noqa F401
+     ASTSafetyError,
+     InvalidInput,

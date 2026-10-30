@@ -1,0 +1,36 @@
+Extract method <_read_cache> - today 10:26:18 :
+
+
+--- a/src/black/__init__.py
++++ b/src/black/__init__.py
+@@ -1017,12 +1017,7 @@
+             ):
+                 changed = Changed.YES
+         else:
+-            if no_cache:
+-                cache = None
+-            elif cache_dir is None:
+-                cache = Cache.read(mode)
+-            else:
+-                cache = Cache.read(mode, cache_dir)
++            cache = _read_cache(no_cache, cache_dir, mode)
+             if cache is not None:
+                 if not cache.is_changed(src):
+                     changed = Changed.CACHED
+@@ -1050,6 +1045,15 @@
+         if report.verbose:
+             traceback.print_exc()
+         report.failed(src, exc)
++
++def _read_cache(no_cache, cache_dir, mode):
++    if no_cache:
++        cache = None
++    elif cache_dir is None:
++        cache = Cache.read(mode)
++    else:
++        cache = Cache.read(mode, cache_dir)
++    return cache
+ 
+ 
+ def format_file_in_place(
+

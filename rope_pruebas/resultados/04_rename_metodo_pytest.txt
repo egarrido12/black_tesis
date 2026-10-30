@@ -1,0 +1,1714 @@
+...........FF..F...F.......................FF....................F..................F..FF......................F.F. [ 15%]
+...................FFFF..........F.F.F...F.FF..FFFFFF...FF...F...FFFFF [ 24%]
+FF.F.................................................................... [ 34%]
+........................................................................ [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 63%]
+........................................................................ [ 73%]
+........................................................................ [ 82%]
+................................................................FFFFF... [ 92%]
+ss......................................................                 [100%]
+=================================== FAILURES ===================================
+_______________ test_fmt_off_reindent_reports_black_not_the_user _______________
+
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_fmt_off_reindent_reports_0')
+
+    def test_fmt_off_reindent_reports_black_not_the_user(tmp_path: Path) -> None:
+        """Black must own the error when its own output fails to parse.
+    
+        Reindenting to 4 spaces stops at a ``# fmt: off`` region, so the result can
+        mix indent widths and fail the forced second pass. That parse failure is
+        Black's, but it used to surface as ``cannot parse: <user file>:<line>``,
+        which is exactly what a genuine syntax error in the user's source looks
+        like.
+        """
+        source = tmp_path / "reindent.py"
+        source.write_text(
+            'if __name__ == "__main__":\n'
+            "  foo = 3\n"
+            "  # fmt: off\n"
+            "  bar = 1\n"
+            "  baz  =  2\n"
+            "  # fmt: on\n"
+            "  qux = 4\n",
+            encoding="utf8",
+        )
+        # the file itself is valid Python; only Black's own output is not
+        ast.parse(source.read_text(encoding="utf8"))
+    
+        result = BlackRunner().invoke(
+            black.main, ["--config", str(THIS_DIR / "empty.toml"), str(source)]
+        )
+    
+        assert result.exit_code == 123
+        # the internal error must come first, so the parse location that follows is
+        # read as part of it rather than as a syntax error in the user's file
+>       assert result.stderr.startswith("error: INTERNAL ERROR:")
+E       assert False
+E        +  where False = <built-in method startswith of str object at 0x12a890600>('error: INTERNAL ERROR:')
+E        +    where <built-in method startswith of str object at 0x12a890600> = "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...dent_reports_0/reindent.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n".startswith
+E        +      where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...dent_reports_0/reindent.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.stderr
+
+tests/test_black.py:181: AssertionError
+_______________ test_invalid_input_error_includes_path_location ________________
+
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_invalid_input_error_inclu0')
+
+    def test_invalid_input_error_includes_path_location(tmp_path: Path) -> None:
+        source = tmp_path / "invalid.py"
+        source.write_text("return if you can\n", encoding="utf8")
+    
+        result = BlackRunner().invoke(
+            black.main, ["--config", str(THIS_DIR / "empty.toml"), str(source)]
+        )
+    
+        assert result.exit_code == 123
+>       assert (
+            f"error: cannot parse: {source}:1:7\n"
+            "    return if you can\n"
+            "          ^\n"
+            "ParseError: bad input\n"
+            in result.stderr
+        )
+E       assert 'error: cannot parse: /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_invalid_input_error_inclu0/invalid.py:1:7\n    return if you can\n          ^\nParseError: bad input\n' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ut_error_inclu0/invalid.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n"
+E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ut_error_inclu0/invalid.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.stderr
+
+tests/test_black.py:197: AssertionError
+____________________ BlackTestCase.test_bpo_2142_workaround ____________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_bpo_2142_workaround>
+
+    def test_bpo_2142_workaround(self) -> None:
+        # https://bugs.python.org/issue2142
+    
+        source, _ = read_data("miscellaneous", "missing_final_newline")
+        # read_data adds a trailing newline
+        source = source.rstrip()
+        expected, _ = read_data("miscellaneous", "missing_final_newline.diff")
+        tmp_file = Path(black.dump_to_file(source, ensure_final_newline=False))
+        diff_header = re.compile(
+            rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+            r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+        )
+        try:
+            result = BlackRunner().invoke(black.main, ["--diff", str(tmp_file)])
+>           self.assertEqual(result.exit_code, 0)
+E           AssertionError: 123 != 0
+
+tests/test_black.py:2379: AssertionError
+__________________ BlackTestCase.test_check_diff_use_together __________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_check_diff_use_together>
+
+    @event_loop()
+    def test_check_diff_use_together(self) -> None:
+        with cache_dir():
+            # Files which will be reformatted.
+            src1 = get_case_path("miscellaneous", "string_quotes")
+>           self.invokeBlack([str(src1), "--diff", "--check"], exit_code=1)
+
+tests/test_black.py:1333: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml...o10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/miscellaneous/string_quotes.py', '--diff', '--check']
+exit_code = 1, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/miscellaneous/string_quotes.py', '--diff', '--check']
+E         stdout: ''
+E         stderr: 'Identified `/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo` as project root containing a pyproject.toml.\nFound input source: "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/miscellaneous/string_quotes.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/miscellaneous/string_quotes.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         exception: 123
+E       assert 123 == 1
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+______________________ BlackTestCase.test_expression_diff ______________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_expression_diff>
+
+    def test_expression_diff(self) -> None:
+        source, _ = read_data("cases", "expression.py")
+        expected, _ = read_data("cases", "expression.diff")
+        tmp_file = Path(black.dump_to_file(source))
+        diff_header = re.compile(
+            rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+            r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+        )
+        try:
+            result = BlackRunner().invoke(
+                black.main, ["--diff", str(tmp_file), f"--config={EMPTY_CONFIG}"]
+            )
+>           self.assertEqual(result.exit_code, 0)
+E           AssertionError: 123 != 0
+
+tests/test_black.py:413: AssertionError
+________________ BlackTestCase.test_expression_diff_with_color _________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_expression_diff_with_color>
+
+    def test_expression_diff_with_color(self) -> None:
+        source, _ = read_data("cases", "expression.py")
+        expected, _ = read_data("cases", "expression.diff")
+        tmp_file = Path(black.dump_to_file(source))
+        try:
+            result = BlackRunner().invoke(
+                black.main,
+                ["--diff", "--color", str(tmp_file), f"--config={EMPTY_CONFIG}"],
+            )
+        finally:
+            os.unlink(tmp_file)
+        actual = result.output
+        # We check the contents of the diff in `test_expression_diff`. All
+        # we need to check here is that color codes exist in the result.
+>       self.assertIn("\033[1m", actual)
+E       AssertionError: '\x1b[1m' not found in "error: cannot format /var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/blk_cjh5tgjh.log: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+
+tests/test_black.py:441: AssertionError
+___________________ BlackTestCase.test_github_output_in_cli ____________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_github_output_in_cli>
+
+    def test_github_output_in_cli(self) -> None:
+        with TemporaryDirectory() as workspace:
+            output_file = Path(workspace) / "github_output"
+            src = Path(workspace) / "test.py"
+            src.write_text("x = 1\n", encoding="utf-8")
+            with patch.dict(os.environ, {"GITHUB_OUTPUT": str(output_file)}):
+>               self.invokeBlack([str(src)])
+
+tests/test_black.py:869: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp61csr9n6/test.py']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp61csr9n6/test.py']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp61csr9n6/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp61csr9n6/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+__________________ BlackTestCase.test_line_ranges_with_source __________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_line_ranges_with_source>
+
+    def test_line_ranges_with_source(self) -> None:
+        with TemporaryDirectory() as workspace:
+            test_file = Path(workspace) / "test.py"
+            test_file.write_text(
+                textwrap.dedent("""\
+            if  a  ==  b:
+                print  ( "OK" )
+            """),
+                encoding="utf-8",
+            )
+            args = ["--line-ranges=1-1", str(test_file)]
+            result = BlackRunner().invoke(black.main, args)
+>           assert not result.exit_code
+E           assert not 123
+E            +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:2583: AssertionError
+___________________ BlackTestCase.test_multi_file_force_py36 ___________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_multi_file_force_py36>
+
+    @event_loop()
+    def test_multi_file_force_py36(self) -> None:
+        reg_mode = DEFAULT_MODE
+        py36_mode = replace(DEFAULT_MODE, target_versions=PY36_VERSIONS)
+        source, expected = read_data("miscellaneous", "force_py36")
+        with cache_dir() as workspace:
+            paths = [
+                (workspace / "file1.py").resolve(),
+                (workspace / "file2.py").resolve(),
+            ]
+            for path in paths:
+                path.write_text(source, encoding="utf-8")
+            self.invokeBlack([str(p) for p in paths] + PY36_ARGS)
+            for path in paths:
+                actual = path.read_text(encoding="utf-8")
+                self.assertEqual(actual, expected)
+            # verify cache with --target-version is separate
+            pyi_cache = black.Cache.read(py36_mode, workspace)
+            normal_cache = black.Cache.read(reg_mode, workspace)
+            for path in paths:
+>               assert not pyi_cache.is_changed(path)
+                           ^^^^^^^^^^^^^^^^^^^^
+E               AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:1442: AttributeError
+___________________ BlackTestCase.test_multi_file_force_pyi ____________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_multi_file_force_pyi>
+
+    @event_loop()
+    def test_multi_file_force_pyi(self) -> None:
+        reg_mode = DEFAULT_MODE
+        pyi_mode = replace(DEFAULT_MODE, is_pyi=True)
+        contents, expected = read_data("miscellaneous", "force_pyi")
+        with cache_dir() as workspace:
+            paths = [
+                (workspace / "file1.py").resolve(),
+                (workspace / "file2.py").resolve(),
+            ]
+            for path in paths:
+                path.write_text(contents, encoding="utf-8")
+            self.invokeBlack([str(p) for p in paths] + ["--pyi"])
+            for path in paths:
+                actual = path.read_text(encoding="utf-8")
+                self.assertEqual(actual, expected)
+            # verify cache with --pyi is separate
+            pyi_cache = black.Cache.read(pyi_mode, workspace)
+            normal_cache = black.Cache.read(reg_mode, workspace)
+            for path in paths:
+>               assert not pyi_cache.is_changed(path)
+                           ^^^^^^^^^^^^^^^^^^^^
+E               AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:1394: AttributeError
+_________________________ BlackTestCase.test_python315 _________________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_python315>
+
+    @patch("black.dump_to_file", dump_to_stderr)
+    def test_python315(self) -> None:
+        source_path = get_case_path("cases", "python315")
+        _, source, expected = read_data_from_file(source_path)
+        actual = fs(source)
+        self.assertFormatEqual(expected, actual)
+        if sys.version_info >= (3, 15):
+            black.assert_equivalent(source, actual)
+        black.assert_stable(source, actual, DEFAULT_MODE)
+>       self.invokeBlack([str(source_path), "--target-version", "py315", "--fast"])
+
+tests/test_black.py:600: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml...10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/cases/python315.py', '--target-version', 'py315', ...]
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/cases/python315.py', '--target-version', 'py315', '--fast']
+E         stdout: ''
+E         stderr: 'Identified `/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo` as project root containing a pyproject.toml.\nFound input source: "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/cases/python315.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/cases/python315.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+_________________________ BlackTestCase.test_python37 __________________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_python37>
+
+    @patch("black.dump_to_file", dump_to_stderr)
+    def test_python37(self) -> None:
+        source_path = get_case_path("cases", "python37")
+        _, source, expected = read_data_from_file(source_path)
+        actual = fs(source)
+        self.assertFormatEqual(expected, actual)
+        black.assert_equivalent(source, actual)
+        black.assert_stable(source, actual, DEFAULT_MODE)
+        # ensure black can parse this when the target is 3.7
+>       self.invokeBlack([str(source_path), "--target-version", "py37"])
+
+tests/test_black.py:589: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml...garrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/cases/python37.py', '--target-version', 'py37']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/cases/python37.py', '--target-version', 'py37']
+E         stdout: ''
+E         stderr: 'Identified `/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo` as project root containing a pyproject.toml.\nFound input source: "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/cases/python37.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/cases/python37.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+__________________ BlackTestCase.test_single_file_force_py36 ___________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_single_file_force_py36>
+
+    def test_single_file_force_py36(self) -> None:
+        reg_mode = DEFAULT_MODE
+        py36_mode = replace(DEFAULT_MODE, target_versions=PY36_VERSIONS)
+        source, expected = read_data("miscellaneous", "force_py36")
+        with cache_dir() as workspace:
+            path = (workspace / "file.py").resolve()
+            path.write_text(source, encoding="utf-8")
+>           self.invokeBlack([str(path), *PY36_ARGS])
+
+tests/test_black.py:1413: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml...olders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpl7sitqz9/file.py', '--target-version=py36', '--target-version=py39', ...]
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpl7sitqz9/file.py', '--target-version=py36', '--target-version=py39', '--target-version=py38', '--target-version=py37']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpl7sitqz9/file.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpl7sitqz9/file.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+___________________ BlackTestCase.test_single_file_force_pyi ___________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_single_file_force_pyi>
+
+    def test_single_file_force_pyi(self) -> None:
+        pyi_mode = replace(DEFAULT_MODE, is_pyi=True)
+        contents, expected = read_data("miscellaneous", "force_pyi")
+        with cache_dir() as workspace:
+            path = (workspace / "file.py").resolve()
+            path.write_text(contents, encoding="utf-8")
+>           self.invokeBlack([str(path), "--pyi"])
+
+tests/test_black.py:1363: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmphkwph10k/file.py', '--pyi']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmphkwph10k/file.py', '--pyi']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmphkwph10k/file.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmphkwph10k/file.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+_________________ BlackTestCase.test_skip_magic_trailing_comma _________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_skip_magic_trailing_comma>
+
+    def test_skip_magic_trailing_comma(self) -> None:
+        source, _ = read_data("cases", "expression")
+        expected, _ = read_data(
+            "miscellaneous", "expression_skip_magic_trailing_comma.diff"
+        )
+        tmp_file = Path(black.dump_to_file(source))
+        diff_header = re.compile(
+            rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+            r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+        )
+        try:
+            result = BlackRunner().invoke(
+                black.main, ["-C", "--diff", str(tmp_file), f"--config={EMPTY_CONFIG}"]
+            )
+>           self.assertEqual(result.exit_code, 0)
+E           AssertionError: 123 != 0
+
+tests/test_black.py:564: AssertionError
+__________________ BlackTestCase.test_skip_source_first_line ___________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_skip_source_first_line>
+
+    def test_skip_source_first_line(self) -> None:
+        source, _ = read_data("miscellaneous", "invalid_header")
+        tmp_file = Path(black.dump_to_file(source))
+        # Full source should fail (invalid syntax at header)
+        self.invokeBlack([str(tmp_file), "--diff", "--check"], exit_code=123)
+        # So, skipping the first line should work
+        result = BlackRunner().invoke(
+            black.main, [str(tmp_file), "-x", f"--config={EMPTY_CONFIG}"]
+        )
+>       self.assertEqual(result.exit_code, 0)
+E       AssertionError: 123 != 0
+
+tests/test_black.py:494: AssertionError
+___________________ TestCaching.test_cache_dir_option[False] ___________________
+
+self = <tests.test_black.TestCaching object at 0x104ec1e20>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1084d8aa0>
+multiple_files = False
+
+    @pytest.mark.parametrize("multiple_files", [False, True])
+    def test_cache_dir_option(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        multiple_files: bool,
+    ) -> None:
+        env_cache_dir = tmp_path / "env-cache"
+        cli_cache_dir = tmp_path / "cli-cache"
+        source_dir = tmp_path / "src"
+        source_dir.mkdir()
+        sources = [source_dir / "one.py"]
+        if multiple_files:
+            sources.append(source_dir / "two.py")
+        for source in sources:
+            source.write_text("print('hello')", encoding="utf-8")
+    
+        monkeypatch.setenv("BLACK_CACHE_DIR", str(env_cache_dir))
+        target = source_dir if multiple_files else sources[0]
+        with patch("concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor):
+>           invokeBlack([str(target), "--cache-dir", str(cli_cache_dir)])
+
+tests/test_black.py:3017: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml...ers/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/cli-cache']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/src/one.py', '--cache-dir', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/cli-cache']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/src/one.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/src/one.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+____ TestCaching.test_cache_dir_option_does_not_write_grammar_cache_to_env _____
+
+self = <tests.test_black.TestCaching object at 0x104ef59a0>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_does_not0')
+
+    def test_cache_dir_option_does_not_write_grammar_cache_to_env(
+        self, tmp_path: Path
+    ) -> None:
+        env_cache_dir = tmp_path / "env-cache"
+        cli_cache_dir = tmp_path / "cli-cache"
+        env_version_dir = get_cache_dir(env_cache_dir)
+        env_version_dir.mkdir(parents=True)
+        source = tmp_path / "source.py"
+        source.write_text("print('hello')", encoding="utf-8")
+        env = os.environ.copy()
+        env["BLACK_CACHE_DIR"] = str(env_cache_dir)
+    
+>       subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "black",
+                str(source),
+                "--cache-dir",
+                str(cli_cache_dir),
+            ],
+            env=env,
+            check=True,
+            capture_output=True,
+        )
+
+tests/test_black.py:3038: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['/Users/estebangarrido10/black_tesis/.venv/bin/python', '-m', 'black', '/private/var/folders/k_/fsm668d93fnc6932cv0y...k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_does_not0/cli-cache'],)
+kwargs = {'env': {'COMMAND_MODE': 'unix2003', 'HOME': '/Users/estebangarrido10', 'HOMEBREW_CELLAR': '/opt/homebrew/Cellar', 'HOMEBREW_PREFIX': '/opt/homebrew', ...}, 'stdout': -1, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/Users/estebangarrido10/black_tesis/.venv/bin/python', '-m', 'black', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_does_not0/source.py', '--cache-dir', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_does_not0/cli-cache']' returned non-zero exit status 123.
+
+../../../../.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/subprocess.py:571: CalledProcessError
+____ TestCaching.test_relative_cache_dir_from_config_is_relative_to_config _____
+
+self = <tests.test_black.TestCaching object at 0x104eed190>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_relative_cache_dir_from_c0')
+
+    def test_relative_cache_dir_from_config_is_relative_to_config(
+        self, tmp_path: Path
+    ) -> None:
+        project = tmp_path / "project"
+        project.mkdir()
+        source = project / "source.py"
+        source.write_text("print('hello')", encoding="utf-8")
+        config = project / "pyproject.toml"
+        config.write_text(
+            '[tool.black]\ncache-dir = ".black-cache"\n', encoding="utf-8"
+        )
+    
+        with change_directory(tmp_path):
+            result = BlackRunner().invoke(black.main, [str(source)])
+    
+>       assert result.exit_code == 0
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:3083: AssertionError
+______________________ TestCaching.test_cache_broken_file ______________________
+
+self = <tests.test_black.TestCaching object at 0x104eedeb0>
+
+    def test_cache_broken_file(self) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            cache_file = get_cache_file(mode, workspace)
+            cache_file.write_text("this is not a pickle", encoding="utf-8")
+            assert black.Cache.read(mode, workspace).file_data == {}
+            src = (workspace / "test.py").resolve()
+            src.write_text("print('hello')", encoding="utf-8")
+>           invokeBlack([str(src)])
+
+tests/test_black.py:3159: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpy_1_zh8d/test.py']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpy_1_zh8d/test.py']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpy_1_zh8d/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpy_1_zh8d/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+______________ TestCaching.test_cache_single_file_already_cached _______________
+
+self = <tests.test_black.TestCaching object at 0x104eec770>
+
+    def test_cache_single_file_already_cached(self) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            src.write_text("print('hello')", encoding="utf-8")
+            cache = black.Cache.read(mode, workspace)
+            cache.write([src])
+>           invokeBlack([str(src)])
+
+tests/test_black.py:3177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpwa06zebm/test.py']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpwa06zebm/test.py']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpwa06zebm/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpwa06zebm/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+____________________ TestCaching.test_cache_multiple_files _____________________
+
+self = <tests.test_black.TestCaching object at 0x104eef710>
+
+    @event_loop()
+    def test_cache_multiple_files(self) -> None:
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch("concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor),
+        ):
+            one = (workspace / "one.py").resolve()
+            one.write_text("print('hello')", encoding="utf-8")
+            two = (workspace / "two.py").resolve()
+            two.write_text("print('hello')", encoding="utf-8")
+            cache = black.Cache.read(mode, workspace)
+            cache.write([one])
+            invokeBlack([str(workspace)])
+            assert one.read_text(encoding="utf-8") == "print('hello')"
+            assert two.read_text(encoding="utf-8") == 'print("hello")\n'
+            cache = black.Cache.read(mode, workspace)
+>           assert not cache.is_changed(one)
+                       ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3197: AttributeError
+_ TestCaching.test_cache_written_when_writeback_diff_and_unmodified[no-color] __
+
+self = <tests.test_black.TestCaching object at 0x104ef86b0>, color = False
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    def test_cache_written_when_writeback_diff_and_unmodified(
+        self, color: bool
+    ) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            src.write_text('print("hello")\n', encoding="utf-8")
+            cmd = [str(src), "--diff"]
+            if color:
+                cmd.append("--color")
+>           invokeBlack(cmd)
+
+tests/test_black.py:3231: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzj94be0s/test.py', '--diff']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzj94be0s/test.py', '--diff']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzj94be0s/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzj94be0s/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+_ TestCaching.test_cache_written_when_writeback_diff_and_unmodified[with-color] _
+
+self = <tests.test_black.TestCaching object at 0x104ef8860>, color = True
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    def test_cache_written_when_writeback_diff_and_unmodified(
+        self, color: bool
+    ) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            src.write_text('print("hello")\n', encoding="utf-8")
+            cmd = [str(src), "--diff"]
+            if color:
+                cmd.append("--color")
+>           invokeBlack(cmd)
+
+tests/test_black.py:3231: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpu74zlhc3/test.py', '--diff', '--color']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpu74zlhc3/test.py', '--diff', '--color']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpu74zlhc3/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpu74zlhc3/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+___ TestCaching.test_cache_used_when_writeback_diff_already_cached[no-color] ___
+
+self = <tests.test_black.TestCaching object at 0x104eeca10>, color = False
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    def test_cache_used_when_writeback_diff_already_cached(self, color: bool) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            src.write_text("print('hello')", encoding="utf-8")
+            cache = black.Cache.read(mode, workspace)
+            cache.write([src])
+            cmd = ["--config", str(THIS_DIR / "empty.toml"), str(src), "--diff"]
+            if color:
+                cmd.append("--color")
+            result = BlackRunner().invoke(black.main, cmd)
+>           assert result.exit_code == 0
+E           assert 123 == 0
+E            +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:3247: AssertionError
+__ TestCaching.test_cache_used_when_writeback_diff_already_cached[with-color] __
+
+self = <tests.test_black.TestCaching object at 0x104eef0e0>, color = True
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    def test_cache_used_when_writeback_diff_already_cached(self, color: bool) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            src.write_text("print('hello')", encoding="utf-8")
+            cache = black.Cache.read(mode, workspace)
+            cache.write([src])
+            cmd = ["--config", str(THIS_DIR / "empty.toml"), str(src), "--diff"]
+            if color:
+                cmd.append("--color")
+            result = BlackRunner().invoke(black.main, cmd)
+>           assert result.exit_code == 0
+E           assert 123 == 0
+E            +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:3247: AssertionError
+_____ TestCaching.test_cache_multiple_files_when_writeback_diff[no-color] ______
+
+self = <tests.test_black.TestCaching object at 0x104eed6d0>, color = False
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    @event_loop()
+    def test_cache_multiple_files_when_writeback_diff(self, color: bool) -> None:
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch("concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor),
+        ):
+            one = (workspace / "one.py").resolve()
+            one.write_text('print("hello")\n', encoding="utf-8")
+            two = (workspace / "two.py").resolve()
+            two.write_text("print('world')", encoding="utf-8")
+            cache = black.Cache.read(mode, workspace)
+            cache.write([one])
+            cmd = ["--config", str(THIS_DIR / "empty.toml"), "--diff", str(workspace)]
+            if color:
+                cmd.append("--color")
+            result = BlackRunner().invoke(black.main, cmd)
+            assert result.exit_code == 0
+            expected = "1 file would be reformatted, 1 file would be left unchanged."
+            assert expected in result.output
+            cache = black.Cache.read(mode, workspace)
+>           assert not cache.is_changed(one)
+                       ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3273: AttributeError
+----------------------------- Captured stdout call -----------------------------
+--- /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpb6gv08tt/two.py	2026-10-30 15:24:51.148284+00:00
++++ /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpb6gv08tt/two.py	2026-10-30 15:24:51.245851+00:00
+@@ -1 +1 @@
+-print('world')
+\ No newline at end of file
++print("world")
+____ TestCaching.test_cache_multiple_files_when_writeback_diff[with-color] _____
+
+self = <tests.test_black.TestCaching object at 0x104eedbb0>, color = True
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    @event_loop()
+    def test_cache_multiple_files_when_writeback_diff(self, color: bool) -> None:
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch("concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor),
+        ):
+            one = (workspace / "one.py").resolve()
+            one.write_text('print("hello")\n', encoding="utf-8")
+            two = (workspace / "two.py").resolve()
+            two.write_text("print('world')", encoding="utf-8")
+            cache = black.Cache.read(mode, workspace)
+            cache.write([one])
+            cmd = ["--config", str(THIS_DIR / "empty.toml"), "--diff", str(workspace)]
+            if color:
+                cmd.append("--color")
+            result = BlackRunner().invoke(black.main, cmd)
+            assert result.exit_code == 0
+            expected = "1 file would be reformatted, 1 file would be left unchanged."
+            assert expected in result.output
+            cache = black.Cache.read(mode, workspace)
+>           assert not cache.is_changed(one)
+                       ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3273: AttributeError
+----------------------------- Captured stdout call -----------------------------
+[1m--- /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpjvexhwiv/two.py	2026-10-30 15:24:51.286551+00:00[0m
+[1m+++ /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpjvexhwiv/two.py	2026-10-30 15:24:51.383518+00:00[0m
+[36m@@ -1 +1 @@[0m
+[31m-print('world')[0m
+\ No newline at end of file
+[32m+print("world")[0m
+______________ TestCaching.test_no_cache_when_line_ranges[format] ______________
+
+self = <tests.test_black.TestCaching object at 0x104eb7a70>, check = False
+
+    @pytest.mark.parametrize("check", [False, True], ids=["format", "check"])
+    def test_no_cache_when_line_ranges(self, check: bool) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            # Only the first line is formatted.
+            src.write_text("x = 1\ny  =  2\n", encoding="utf-8")
+            args = [str(src), "--line-ranges=1-1"]
+            if check:
+                args.append("--check")
+>           invokeBlack(args)
+
+tests/test_black.py:3314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp8mcj4kw5/test.py', '--line-ranges=1-1']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp8mcj4kw5/test.py', '--line-ranges=1-1']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp8mcj4kw5/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp8mcj4kw5/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+______________ TestCaching.test_no_cache_when_line_ranges[check] _______________
+
+self = <tests.test_black.TestCaching object at 0x104ece960>, check = True
+
+    @pytest.mark.parametrize("check", [False, True], ids=["format", "check"])
+    def test_no_cache_when_line_ranges(self, check: bool) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            # Only the first line is formatted.
+            src.write_text("x = 1\ny  =  2\n", encoding="utf-8")
+            args = [str(src), "--line-ranges=1-1"]
+            if check:
+                args.append("--check")
+>           invokeBlack(args)
+
+tests/test_black.py:3314: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpusntkkzo/test.py', '--line-ranges=1-1', '--check']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpusntkkzo/test.py', '--line-ranges=1-1', '--check']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpusntkkzo/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpusntkkzo/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+___________________ TestCaching.test_write_cache_read_cache ____________________
+
+self = <tests.test_black.TestCaching object at 0x104ef9b80>
+
+    def test_write_cache_read_cache(self) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            src.touch()
+            write_cache = black.Cache.read(mode, workspace)
+            write_cache.write([src])
+            read_cache = black.Cache.read(mode, workspace)
+>           assert not read_cache.is_changed(src)
+                       ^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3379: AttributeError
+____________ TestCaching.test_failed_formatting_does_not_get_cached ____________
+
+self = <tests.test_black.TestCaching object at 0x104efa7e0>
+
+    @event_loop()
+    def test_failed_formatting_does_not_get_cached(self) -> None:
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch("concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor),
+        ):
+            failing = (workspace / "failing.py").resolve()
+            failing.write_text("not actually python", encoding="utf-8")
+            clean = (workspace / "clean.py").resolve()
+            clean.write_text('print("hello")\n', encoding="utf-8")
+            invokeBlack([str(workspace)], exit_code=123)
+            cache = black.Cache.read(mode, workspace)
+>           assert cache.is_changed(failing)
+                   ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3467: AttributeError
+_ TestCaching.test_interrupted_run_is_not_reported_as_success[format-process-pool] _
+
+self = <tests.test_black.TestCaching object at 0x104ef4d70>, output = ''
+executor = 'ProcessPoolExecutor', workers = '2'
+
+    @pytest.mark.parametrize(
+        "executor, workers",
+        [("ProcessPoolExecutor", "2"), ("ThreadPoolExecutor", "1")],
+        ids=["process-pool", "thread-pool"],
+    )
+    @pytest.mark.parametrize(
+        "output", ["", "--check", "--diff"], ids=["format", "check", "diff"]
+    )
+    @event_loop()
+    def test_interrupted_run_is_not_reported_as_success(
+        self, output: str, executor: str, workers: str
+    ) -> None:
+        if sys.platform == "win32":
+            pytest.skip("Signal handlers aren't supported on Windows")
+    
+        class InterruptingExecutor(Executor):
+            def __init__(self, max_workers: int) -> None:
+                self.submitted = 0
+    
+            def submit(
+                self, fn: Callable[..., Any], /, *args: Any, **kwargs: Any
+            ) -> Future[Any]:
+                future: Future[Any] = Future()
+                self.submitted += 1
+                if self.submitted == 1:
+                    future.set_result(fn(*args, **kwargs))
+                else:
+                    # Leave the file pending and interrupt Black like Ctrl+C would.
+                    asyncio.get_running_loop().call_soon(
+                        os.kill, os.getpid(), signal.SIGINT
+                    )
+                return future
+    
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch(f"black.concurrency.{executor}", new=InterruptingExecutor),
+        ):
+            clean = (workspace / "clean.py").resolve()
+            clean.write_text('print("hello")\n', encoding="utf-8")
+            pending = (workspace / "pending.py").resolve()
+            pending.write_text("print('hello')\n", encoding="utf-8")
+            args = ["--config", str(THIS_DIR / "empty.toml"), "--workers", workers]
+            if output:
+                args.append(output)
+            result = BlackRunner().invoke(black.main, [*args, str(workspace)])
+            assert result.exit_code == 1
+            assert "Aborting..." in result.stderr
+            assert "Aborted!" in result.stderr
+            assert "All done!" not in result.stderr
+            assert pending.read_text(encoding="utf-8") == "print('hello')\n"
+            cache = black.Cache.read(mode, workspace)
+>           assert not cache.is_changed(clean)
+                       ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3522: AttributeError
+_ TestCaching.test_interrupted_run_is_not_reported_as_success[format-thread-pool] _
+
+self = <tests.test_black.TestCaching object at 0x104eee480>, output = ''
+executor = 'ThreadPoolExecutor', workers = '1'
+
+    @pytest.mark.parametrize(
+        "executor, workers",
+        [("ProcessPoolExecutor", "2"), ("ThreadPoolExecutor", "1")],
+        ids=["process-pool", "thread-pool"],
+    )
+    @pytest.mark.parametrize(
+        "output", ["", "--check", "--diff"], ids=["format", "check", "diff"]
+    )
+    @event_loop()
+    def test_interrupted_run_is_not_reported_as_success(
+        self, output: str, executor: str, workers: str
+    ) -> None:
+        if sys.platform == "win32":
+            pytest.skip("Signal handlers aren't supported on Windows")
+    
+        class InterruptingExecutor(Executor):
+            def __init__(self, max_workers: int) -> None:
+                self.submitted = 0
+    
+            def submit(
+                self, fn: Callable[..., Any], /, *args: Any, **kwargs: Any
+            ) -> Future[Any]:
+                future: Future[Any] = Future()
+                self.submitted += 1
+                if self.submitted == 1:
+                    future.set_result(fn(*args, **kwargs))
+                else:
+                    # Leave the file pending and interrupt Black like Ctrl+C would.
+                    asyncio.get_running_loop().call_soon(
+                        os.kill, os.getpid(), signal.SIGINT
+                    )
+                return future
+    
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch(f"black.concurrency.{executor}", new=InterruptingExecutor),
+        ):
+            clean = (workspace / "clean.py").resolve()
+            clean.write_text('print("hello")\n', encoding="utf-8")
+            pending = (workspace / "pending.py").resolve()
+            pending.write_text("print('hello')\n", encoding="utf-8")
+            args = ["--config", str(THIS_DIR / "empty.toml"), "--workers", workers]
+            if output:
+                args.append(output)
+            result = BlackRunner().invoke(black.main, [*args, str(workspace)])
+            assert result.exit_code == 1
+            assert "Aborting..." in result.stderr
+            assert "Aborted!" in result.stderr
+            assert "All done!" not in result.stderr
+            assert pending.read_text(encoding="utf-8") == "print('hello')\n"
+            cache = black.Cache.read(mode, workspace)
+>           assert not cache.is_changed(clean)
+                       ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3522: AttributeError
+_ TestCaching.test_interrupted_run_is_not_reported_as_success[check-process-pool] _
+
+self = <tests.test_black.TestCaching object at 0x104eecf50>, output = '--check'
+executor = 'ProcessPoolExecutor', workers = '2'
+
+    @pytest.mark.parametrize(
+        "executor, workers",
+        [("ProcessPoolExecutor", "2"), ("ThreadPoolExecutor", "1")],
+        ids=["process-pool", "thread-pool"],
+    )
+    @pytest.mark.parametrize(
+        "output", ["", "--check", "--diff"], ids=["format", "check", "diff"]
+    )
+    @event_loop()
+    def test_interrupted_run_is_not_reported_as_success(
+        self, output: str, executor: str, workers: str
+    ) -> None:
+        if sys.platform == "win32":
+            pytest.skip("Signal handlers aren't supported on Windows")
+    
+        class InterruptingExecutor(Executor):
+            def __init__(self, max_workers: int) -> None:
+                self.submitted = 0
+    
+            def submit(
+                self, fn: Callable[..., Any], /, *args: Any, **kwargs: Any
+            ) -> Future[Any]:
+                future: Future[Any] = Future()
+                self.submitted += 1
+                if self.submitted == 1:
+                    future.set_result(fn(*args, **kwargs))
+                else:
+                    # Leave the file pending and interrupt Black like Ctrl+C would.
+                    asyncio.get_running_loop().call_soon(
+                        os.kill, os.getpid(), signal.SIGINT
+                    )
+                return future
+    
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch(f"black.concurrency.{executor}", new=InterruptingExecutor),
+        ):
+            clean = (workspace / "clean.py").resolve()
+            clean.write_text('print("hello")\n', encoding="utf-8")
+            pending = (workspace / "pending.py").resolve()
+            pending.write_text("print('hello')\n", encoding="utf-8")
+            args = ["--config", str(THIS_DIR / "empty.toml"), "--workers", workers]
+            if output:
+                args.append(output)
+            result = BlackRunner().invoke(black.main, [*args, str(workspace)])
+            assert result.exit_code == 1
+            assert "Aborting..." in result.stderr
+            assert "Aborted!" in result.stderr
+            assert "All done!" not in result.stderr
+            assert pending.read_text(encoding="utf-8") == "print('hello')\n"
+            cache = black.Cache.read(mode, workspace)
+>           assert not cache.is_changed(clean)
+                       ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3522: AttributeError
+_ TestCaching.test_interrupted_run_is_not_reported_as_success[check-thread-pool] _
+
+self = <tests.test_black.TestCaching object at 0x104eecf80>, output = '--check'
+executor = 'ThreadPoolExecutor', workers = '1'
+
+    @pytest.mark.parametrize(
+        "executor, workers",
+        [("ProcessPoolExecutor", "2"), ("ThreadPoolExecutor", "1")],
+        ids=["process-pool", "thread-pool"],
+    )
+    @pytest.mark.parametrize(
+        "output", ["", "--check", "--diff"], ids=["format", "check", "diff"]
+    )
+    @event_loop()
+    def test_interrupted_run_is_not_reported_as_success(
+        self, output: str, executor: str, workers: str
+    ) -> None:
+        if sys.platform == "win32":
+            pytest.skip("Signal handlers aren't supported on Windows")
+    
+        class InterruptingExecutor(Executor):
+            def __init__(self, max_workers: int) -> None:
+                self.submitted = 0
+    
+            def submit(
+                self, fn: Callable[..., Any], /, *args: Any, **kwargs: Any
+            ) -> Future[Any]:
+                future: Future[Any] = Future()
+                self.submitted += 1
+                if self.submitted == 1:
+                    future.set_result(fn(*args, **kwargs))
+                else:
+                    # Leave the file pending and interrupt Black like Ctrl+C would.
+                    asyncio.get_running_loop().call_soon(
+                        os.kill, os.getpid(), signal.SIGINT
+                    )
+                return future
+    
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch(f"black.concurrency.{executor}", new=InterruptingExecutor),
+        ):
+            clean = (workspace / "clean.py").resolve()
+            clean.write_text('print("hello")\n', encoding="utf-8")
+            pending = (workspace / "pending.py").resolve()
+            pending.write_text("print('hello')\n", encoding="utf-8")
+            args = ["--config", str(THIS_DIR / "empty.toml"), "--workers", workers]
+            if output:
+                args.append(output)
+            result = BlackRunner().invoke(black.main, [*args, str(workspace)])
+            assert result.exit_code == 1
+            assert "Aborting..." in result.stderr
+            assert "Aborted!" in result.stderr
+            assert "All done!" not in result.stderr
+            assert pending.read_text(encoding="utf-8") == "print('hello')\n"
+            cache = black.Cache.read(mode, workspace)
+>           assert not cache.is_changed(clean)
+                       ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3522: AttributeError
+_ TestCaching.test_interrupted_run_is_not_reported_as_success[diff-process-pool] _
+
+self = <tests.test_black.TestCaching object at 0x104eeee70>, output = '--diff'
+executor = 'ProcessPoolExecutor', workers = '2'
+
+    @pytest.mark.parametrize(
+        "executor, workers",
+        [("ProcessPoolExecutor", "2"), ("ThreadPoolExecutor", "1")],
+        ids=["process-pool", "thread-pool"],
+    )
+    @pytest.mark.parametrize(
+        "output", ["", "--check", "--diff"], ids=["format", "check", "diff"]
+    )
+    @event_loop()
+    def test_interrupted_run_is_not_reported_as_success(
+        self, output: str, executor: str, workers: str
+    ) -> None:
+        if sys.platform == "win32":
+            pytest.skip("Signal handlers aren't supported on Windows")
+    
+        class InterruptingExecutor(Executor):
+            def __init__(self, max_workers: int) -> None:
+                self.submitted = 0
+    
+            def submit(
+                self, fn: Callable[..., Any], /, *args: Any, **kwargs: Any
+            ) -> Future[Any]:
+                future: Future[Any] = Future()
+                self.submitted += 1
+                if self.submitted == 1:
+                    future.set_result(fn(*args, **kwargs))
+                else:
+                    # Leave the file pending and interrupt Black like Ctrl+C would.
+                    asyncio.get_running_loop().call_soon(
+                        os.kill, os.getpid(), signal.SIGINT
+                    )
+                return future
+    
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch(f"black.concurrency.{executor}", new=InterruptingExecutor),
+        ):
+            clean = (workspace / "clean.py").resolve()
+            clean.write_text('print("hello")\n', encoding="utf-8")
+            pending = (workspace / "pending.py").resolve()
+            pending.write_text("print('hello')\n", encoding="utf-8")
+            args = ["--config", str(THIS_DIR / "empty.toml"), "--workers", workers]
+            if output:
+                args.append(output)
+            result = BlackRunner().invoke(black.main, [*args, str(workspace)])
+            assert result.exit_code == 1
+            assert "Aborting..." in result.stderr
+            assert "Aborted!" in result.stderr
+            assert "All done!" not in result.stderr
+            assert pending.read_text(encoding="utf-8") == "print('hello')\n"
+            cache = black.Cache.read(mode, workspace)
+>           assert not cache.is_changed(clean)
+                       ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3522: AttributeError
+_ TestCaching.test_interrupted_run_is_not_reported_as_success[diff-thread-pool] _
+
+self = <tests.test_black.TestCaching object at 0x104eee1b0>, output = '--diff'
+executor = 'ThreadPoolExecutor', workers = '1'
+
+    @pytest.mark.parametrize(
+        "executor, workers",
+        [("ProcessPoolExecutor", "2"), ("ThreadPoolExecutor", "1")],
+        ids=["process-pool", "thread-pool"],
+    )
+    @pytest.mark.parametrize(
+        "output", ["", "--check", "--diff"], ids=["format", "check", "diff"]
+    )
+    @event_loop()
+    def test_interrupted_run_is_not_reported_as_success(
+        self, output: str, executor: str, workers: str
+    ) -> None:
+        if sys.platform == "win32":
+            pytest.skip("Signal handlers aren't supported on Windows")
+    
+        class InterruptingExecutor(Executor):
+            def __init__(self, max_workers: int) -> None:
+                self.submitted = 0
+    
+            def submit(
+                self, fn: Callable[..., Any], /, *args: Any, **kwargs: Any
+            ) -> Future[Any]:
+                future: Future[Any] = Future()
+                self.submitted += 1
+                if self.submitted == 1:
+                    future.set_result(fn(*args, **kwargs))
+                else:
+                    # Leave the file pending and interrupt Black like Ctrl+C would.
+                    asyncio.get_running_loop().call_soon(
+                        os.kill, os.getpid(), signal.SIGINT
+                    )
+                return future
+    
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch(f"black.concurrency.{executor}", new=InterruptingExecutor),
+        ):
+            clean = (workspace / "clean.py").resolve()
+            clean.write_text('print("hello")\n', encoding="utf-8")
+            pending = (workspace / "pending.py").resolve()
+            pending.write_text("print('hello')\n", encoding="utf-8")
+            args = ["--config", str(THIS_DIR / "empty.toml"), "--workers", workers]
+            if output:
+                args.append(output)
+            result = BlackRunner().invoke(black.main, [*args, str(workspace)])
+            assert result.exit_code == 1
+            assert "Aborting..." in result.stderr
+            assert "Aborted!" in result.stderr
+            assert "All done!" not in result.stderr
+            assert pending.read_text(encoding="utf-8") == "print('hello')\n"
+            cache = black.Cache.read(mode, workspace)
+>           assert not cache.is_changed(clean)
+                       ^^^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3522: AttributeError
+___________________ TestCaching.test_read_cache_line_lengths ___________________
+
+self = <tests.test_black.TestCaching object at 0x104efac60>
+
+    def test_read_cache_line_lengths(self) -> None:
+        mode = DEFAULT_MODE
+        short_mode = replace(DEFAULT_MODE, line_length=1)
+        with cache_dir() as workspace:
+            path = (workspace / "file.py").resolve()
+            path.touch()
+            cache = black.Cache.read(mode, workspace)
+            cache.write([path])
+            one = black.Cache.read(mode, workspace)
+>           assert not one.is_changed(path)
+                       ^^^^^^^^^^^^^^
+E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did you mean: 'has_changed'?
+
+tests/test_black.py:3542: AttributeError
+_________________________ test_ipynb_diff_with_change __________________________
+
+    def test_ipynb_diff_with_change() -> None:
+        result = runner.invoke(
+            main,
+            [
+                str(get_case_path("jupyter", "notebook_trailing_newline.ipynb")),
+                "--diff",
+                f"--config={EMPTY_CONFIG}",
+            ],
+        )
+        expected = "@@ -1,3 +1,3 @@\n %%time\n \n-print('foo')\n+print(\"foo\")\n"
+>       assert expected in result.output
+E       assert '@@ -1,3 +1,3 @@\n %%time\n \n-print(\'foo\')\n+print("foo")\n' in "error: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/jupyter/no...trailing_newline.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+E        +  where "error: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/jupyter/no...trailing_newline.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n" = <Result SystemExit(123)>.output
+
+tests/test_ipynb.py:534: AssertionError
+________________________ test_ipynb_diff_with_no_change ________________________
+
+    def test_ipynb_diff_with_no_change() -> None:
+        result = runner.invoke(
+            main,
+            [
+                str(get_case_path("jupyter", "notebook_without_changes.ipynb")),
+                "--diff",
+                f"--config={EMPTY_CONFIG}",
+            ],
+        )
+        expected = "1 file would be left unchanged."
+>       assert expected in result.output
+E       assert '1 file would be left unchanged.' in "error: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/jupyter/no..._without_changes.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+E        +  where "error: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/data/jupyter/no..._without_changes.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n" = <Result SystemExit(123)>.output
+
+tests/test_ipynb.py:547: AssertionError
+______________ test_cache_isnt_written_if_no_jupyter_deps_single _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10708f350>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_isnt_written_if_no_0')
+
+    def test_cache_isnt_written_if_no_jupyter_deps_single(
+        monkeypatch: MonkeyPatch, tmp_path: pathlib.Path
+    ) -> None:
+        # Check that the cache isn't written to if Jupyter dependencies aren't installed.
+        jupyter_dependencies_are_installed.cache_clear()
+        nb = get_case_path("jupyter", "notebook_trailing_newline.ipynb")
+        tmp_nb = tmp_path / "notebook.ipynb"
+        tmp_nb.write_bytes(nb.read_bytes())
+        monkeypatch.setattr("black.jupyter_dependencies_are_installed", lambda warn: False)
+        result = runner.invoke(
+            main, [str(tmp_path / "notebook.ipynb"), f"--config={EMPTY_CONFIG}"]
+        )
+        assert "No Python files are present to be formatted. Nothing to do" in result.output
+        jupyter_dependencies_are_installed.cache_clear()
+        monkeypatch.setattr("black.jupyter_dependencies_are_installed", lambda warn: True)
+        result = runner.invoke(
+            main, [str(tmp_path / "notebook.ipynb"), f"--config={EMPTY_CONFIG}"]
+        )
+>       assert "reformatted" in result.output
+E       assert 'reformatted' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ten_if_no_0/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n"
+E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ten_if_no_0/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.output
+
+tests/test_ipynb.py:568: AssertionError
+________________ test_cache_isnt_written_if_no_jupyter_deps_dir ________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1084b9820>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_isnt_written_if_no_1')
+
+    def test_cache_isnt_written_if_no_jupyter_deps_dir(
+        monkeypatch: MonkeyPatch, tmp_path: pathlib.Path
+    ) -> None:
+        # Check that the cache isn't written to if Jupyter dependencies aren't installed.
+        jupyter_dependencies_are_installed.cache_clear()
+        nb = get_case_path("jupyter", "notebook_trailing_newline.ipynb")
+        tmp_nb = tmp_path / "notebook.ipynb"
+        tmp_nb.write_bytes(nb.read_bytes())
+        monkeypatch.setattr(
+            "black.files.jupyter_dependencies_are_installed", lambda warn: False
+        )
+        result = runner.invoke(main, [str(tmp_path), f"--config={EMPTY_CONFIG}"])
+        assert "No Python files are present to be formatted. Nothing to do" in result.output
+        jupyter_dependencies_are_installed.cache_clear()
+        monkeypatch.setattr(
+            "black.files.jupyter_dependencies_are_installed", lambda warn: True
+        )
+        result = runner.invoke(main, [str(tmp_path), f"--config={EMPTY_CONFIG}"])
+>       assert "reformatted" in result.output
+E       assert 'reformatted' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ten_if_no_1/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n"
+E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ten_if_no_1/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.output
+
+tests/test_ipynb.py:589: AssertionError
+_______________________________ test_ipynb_flag ________________________________
+
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_ipynb_flag0')
+
+    def test_ipynb_flag(tmp_path: pathlib.Path) -> None:
+        nb = get_case_path("jupyter", "notebook_trailing_newline.ipynb")
+        tmp_nb = tmp_path / "notebook.a_file_extension_which_is_definitely_not_ipynb"
+        tmp_nb.write_bytes(nb.read_bytes())
+        result = runner.invoke(
+            main,
+            [
+                str(tmp_nb),
+                "--diff",
+                "--ipynb",
+                f"--config={EMPTY_CONFIG}",
+            ],
+        )
+        expected = "@@ -1,3 +1,3 @@\n %%time\n \n-print('foo')\n+print(\"foo\")\n"
+>       assert expected in result.output
+E       assert '@@ -1,3 +1,3 @@\n %%time\n \n-print(\'foo\')\n+print("foo")\n' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...s_definitely_not_ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...s_definitely_not_ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n" = <Result SystemExit(123)>.output
+
+tests/test_ipynb.py:606: AssertionError
+=========================== short test summary info ============================
+SKIPPED [2] tests/test_no_ipynb.py: Marked with disabled optional tests (no_jupyter)
+FAILED tests/test_black.py::test_fmt_off_reindent_reports_black_not_the_user
+FAILED tests/test_black.py::test_invalid_input_error_includes_path_location
+FAILED tests/test_black.py::BlackTestCase::test_bpo_2142_workaround - Asserti...
+FAILED tests/test_black.py::BlackTestCase::test_check_diff_use_together - Ass...
+FAILED tests/test_black.py::BlackTestCase::test_expression_diff - AssertionEr...
+FAILED tests/test_black.py::BlackTestCase::test_expression_diff_with_color - ...
+FAILED tests/test_black.py::BlackTestCase::test_github_output_in_cli - Assert...
+FAILED tests/test_black.py::BlackTestCase::test_line_ranges_with_source - ass...
+FAILED tests/test_black.py::BlackTestCase::test_multi_file_force_py36 - Attri...
+FAILED tests/test_black.py::BlackTestCase::test_multi_file_force_pyi - Attrib...
+FAILED tests/test_black.py::BlackTestCase::test_python315 - AssertionError: F...
+FAILED tests/test_black.py::BlackTestCase::test_python37 - AssertionError: Fa...
+FAILED tests/test_black.py::BlackTestCase::test_single_file_force_py36 - Asse...
+FAILED tests/test_black.py::BlackTestCase::test_single_file_force_pyi - Asser...
+FAILED tests/test_black.py::BlackTestCase::test_skip_magic_trailing_comma - A...
+FAILED tests/test_black.py::BlackTestCase::test_skip_source_first_line - Asse...
+FAILED tests/test_black.py::TestCaching::test_cache_dir_option[False] - Asser...
+FAILED tests/test_black.py::TestCaching::test_cache_dir_option_does_not_write_grammar_cache_to_env
+FAILED tests/test_black.py::TestCaching::test_relative_cache_dir_from_config_is_relative_to_config
+FAILED tests/test_black.py::TestCaching::test_cache_broken_file - AssertionEr...
+FAILED tests/test_black.py::TestCaching::test_cache_single_file_already_cached
+FAILED tests/test_black.py::TestCaching::test_cache_multiple_files - Attribut...
+FAILED tests/test_black.py::TestCaching::test_cache_written_when_writeback_diff_and_unmodified[no-color]
+FAILED tests/test_black.py::TestCaching::test_cache_written_when_writeback_diff_and_unmodified[with-color]
+FAILED tests/test_black.py::TestCaching::test_cache_used_when_writeback_diff_already_cached[no-color]
+FAILED tests/test_black.py::TestCaching::test_cache_used_when_writeback_diff_already_cached[with-color]
+FAILED tests/test_black.py::TestCaching::test_cache_multiple_files_when_writeback_diff[no-color]
+FAILED tests/test_black.py::TestCaching::test_cache_multiple_files_when_writeback_diff[with-color]
+FAILED tests/test_black.py::TestCaching::test_no_cache_when_line_ranges[format]
+FAILED tests/test_black.py::TestCaching::test_no_cache_when_line_ranges[check]
+FAILED tests/test_black.py::TestCaching::test_write_cache_read_cache - Attrib...
+FAILED tests/test_black.py::TestCaching::test_failed_formatting_does_not_get_cached
+FAILED tests/test_black.py::TestCaching::test_interrupted_run_is_not_reported_as_success[format-process-pool]
+FAILED tests/test_black.py::TestCaching::test_interrupted_run_is_not_reported_as_success[format-thread-pool]
+FAILED tests/test_black.py::TestCaching::test_interrupted_run_is_not_reported_as_success[check-process-pool]
+FAILED tests/test_black.py::TestCaching::test_interrupted_run_is_not_reported_as_success[check-thread-pool]
+FAILED tests/test_black.py::TestCaching::test_interrupted_run_is_not_reported_as_success[diff-process-pool]
+FAILED tests/test_black.py::TestCaching::test_interrupted_run_is_not_reported_as_success[diff-thread-pool]
+FAILED tests/test_black.py::TestCaching::test_read_cache_line_lengths - Attri...
+FAILED tests/test_ipynb.py::test_ipynb_diff_with_change - assert '@@ -1,3 +1,...
+FAILED tests/test_ipynb.py::test_ipynb_diff_with_no_change - assert '1 file w...
+FAILED tests/test_ipynb.py::test_cache_isnt_written_if_no_jupyter_deps_single
+FAILED tests/test_ipynb.py::test_cache_isnt_written_if_no_jupyter_deps_dir - ...
+FAILED tests/test_ipynb.py::test_ipynb_flag - assert '@@ -1,3 +1,3 @@\n %%tim...
+44 failed, 699 passed, 2 skipped, 31 subtests passed in 25.60s

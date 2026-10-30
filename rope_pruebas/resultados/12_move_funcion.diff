@@ -1,0 +1,136 @@
+Moving global <re_compile_maybe_verbose> - today 10:28:15 :
+
+
+--- a/src/black/__init__.py
++++ b/src/black/__init__.py
+@@ -37,19 +37,7 @@
+     DEFAULT_LINE_LENGTH,
+     STDIN_PLACEHOLDER,
+ )
+-from black.files import (
+-    best_effort_relative_path,
+-    find_project_root,
+-    find_pyproject_toml,
+-    find_user_pyproject_toml,
+-    gen_python_files,
+-    get_gitignore,
+-    is_filesystem_root,
+-    parse_pyproject_toml,
+-    path_is_excluded,
+-    resolves_outside_root_or_cannot_stat,
+-    wrap_stream_for_windows,
+-)
++from black.files import best_effort_relative_path, find_project_root, find_pyproject_toml, find_user_pyproject_toml, gen_python_files, get_gitignore, is_filesystem_root, parse_pyproject_toml, path_is_excluded, resolves_outside_root_or_cannot_stat, wrap_stream_for_windows, re_compile_maybe_verbose
+ from black.handle_ipynb_magics import (
+     PYTHON_CELL_MAGICS,
+     jupyter_dependencies_are_installed,
+@@ -61,9 +49,7 @@
+ )
+ from black.linegen import LN, LineGenerator, transform_line
+ from black.lines import EmptyLineTracker, LinesBlock
+-from black.mode import FUTURE_FLAG_TO_FEATURE, VERSION_TO_FEATURES, Feature
+-from black.mode import Mode as Mode  # re-exported
+-from black.mode import Preview, TargetVersion, supports_feature
++from black.mode import FUTURE_FLAG_TO_FEATURE, VERSION_TO_FEATURES, Feature, Mode as Mode, Preview, TargetVersion, supports_feature
+ from black.nodes import STARS, is_number_token, is_simple_decorator_expression, syms
+ from black.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
+ from black.parsing import (  # noqa F401
+@@ -249,17 +235,6 @@
+ ) -> list[Preview]:
+     """Compute the features from an --enable-unstable-feature flag."""
+     return [Preview[val] for val in v]
+-
+-
+-def re_compile_maybe_verbose(regex: str) -> Pattern[str]:
+-    """Compile a regular expression string in `regex`.
+-
+-    If it contains newlines, use verbose mode.
+-    """
+-    if "\n" in regex:
+-        regex = "(?x)" + regex
+-    compiled: Pattern[str] = re.compile(regex)
+-    return compiled
+ 
+ 
+ def validate_regex(
+
+--- a/src/black/files.py
++++ b/src/black/files.py
+@@ -12,6 +12,23 @@
+ from pathspec import GitIgnoreSpec
+ from pathspec.patterns.gitignore import GitIgnorePatternError
+ 
++from black.handle_ipynb_magics import jupyter_dependencies_are_installed
++from black.mode import TargetVersion
++from black.output import err
++from black.report import Report
++import re
++
++
++def re_compile_maybe_verbose(regex: str) -> Pattern[str]:
++    """Compile a regular expression string in `regex`.
++
++    If it contains newlines, use verbose mode.
++    """
++    if "\n" in regex:
++        regex = "(?x)" + regex
++    compiled: Pattern[str] = re.compile(regex)
++    return compiled
++
+ if sys.version_info >= (3, 11):
+     try:
+         import tomllib
+@@ -21,11 +38,6 @@
+             import tomli as tomllib
+ else:
+     import tomli as tomllib
+-
+-from black.handle_ipynb_magics import jupyter_dependencies_are_installed
+-from black.mode import TargetVersion
+-from black.output import err
+-from black.report import Report
+ 
+ if TYPE_CHECKING:
+     import colorama
+
+--- a/tests/test_black.py
++++ b/tests/test_black.py
+@@ -34,10 +34,9 @@
+ from packaging.version import Version
+ from pathspec import GitIgnoreSpec
+ 
+-import black
+ import black.files
+-from black import Feature, TargetVersion
+-from black import re_compile_maybe_verbose as compile_pattern
++import black.files
++from black import Feature, TargetVersion, re_compile_maybe_verbose as compile_pattern
+ from black.cache import FileData, get_cache_dir, get_cache_file
+ from black.debug import DebugVisitor
+ from black.mode import Mode, Preview
+@@ -45,8 +44,6 @@
+ from black.parsing import ASTSafetyError, SourceASTParseError
+ from black.report import Report
+ from black.strings import lines_with_leading_tabs_expanded
+-
+-# Import other test classes
+ from tests.util import (
+     DATA_DIR,
+     DEFAULT_MODE,
+@@ -65,11 +62,13 @@
+     read_data_from_file,
+ )
+ 
++# Import other test classes
++
+ THIS_FILE = Path(__file__)
+ EMPTY_CONFIG = THIS_DIR / "data" / "empty_pyproject.toml"
+ PY36_ARGS = [f"--target-version={version.name.lower()}" for version in PY36_VERSIONS]
+-DEFAULT_EXCLUDE = black.re_compile_maybe_verbose(black.const.DEFAULT_EXCLUDES)
+-DEFAULT_INCLUDE = black.re_compile_maybe_verbose(black.const.DEFAULT_INCLUDES)
++DEFAULT_EXCLUDE = black.files.re_compile_maybe_verbose(black.const.DEFAULT_EXCLUDES)
++DEFAULT_INCLUDE = black.files.re_compile_maybe_verbose(black.const.DEFAULT_INCLUDES)
+ T = TypeVar("T")
+ R = TypeVar("R")
+ 
+

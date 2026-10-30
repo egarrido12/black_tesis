@@ -1,0 +1,15 @@
+Renaming <visit_suite> to <visit_block> - today 10:29:38 :
+
+
+--- a/src/black/linegen.py
++++ b/src/black/linegen.py
+@@ -321,7 +321,7 @@
+         for child in node.children:
+             yield from self.visit(child)
+ 
+-    def visit_suite(self, node: Node) -> Iterator[Line]:
++    def visit_block(self, node: Node) -> Iterator[Line]:
+         """Visit a suite."""
+         if is_stub_suite(node):
+             yield from self.visit(node.children[2])
+

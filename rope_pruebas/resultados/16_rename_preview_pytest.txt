@@ -1,0 +1,33 @@
+................................................................................................................... [ 15%]
+...................................................................... [ 24%]
+........................................................................ [ 34%]
+....................F................................................... [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 63%]
+........................................................................ [ 73%]
+........................................................................ [ 82%]
+........................................................................ [ 92%]
+ss......................................................                 [100%]
+=================================== FAILURES ===================================
+______________________ test_feature_lists_are_up_to_date _______________________
+
+    def test_feature_lists_are_up_to_date() -> None:
+        repo_root = Path(__file__).parent.parent
+        if not (repo_root / "docs").exists():
+            pytest.skip("docs not found")
+        with (repo_root / DOCS_PATH).open(encoding="utf-8") as f:
+            future_style = f.readlines()
+        preview_error = check_feature_list(
+            future_style,
+            {feature.name for feature in set(Preview) - UNSTABLE_FEATURES},
+            "preview",
+        )
+>       assert preview_error is None, preview_error
+E       AssertionError: The following features should not be in the list of preview features: wrap_comprehension_in. Please remove them from the preview-features label in docs/the_black_code_style/future_style.md
+E       assert 'The following features should not be in the list of preview features: wrap_comprehension_in. Please remove them from the preview-features label in docs/the_black_code_style/future_style.md' is None
+
+tests/test_docs.py:70: AssertionError
+=========================== short test summary info ============================
+SKIPPED [2] tests/test_no_ipynb.py: Marked with disabled optional tests (no_jupyter)
+FAILED tests/test_docs.py::test_feature_lists_are_up_to_date - AssertionError...
+1 failed, 742 passed, 2 skipped, 31 subtests passed in 23.99s

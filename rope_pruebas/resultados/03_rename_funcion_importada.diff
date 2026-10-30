@@ -1,4 +1,4 @@
-Renaming <parse_line_ranges> to <parse_line_range_specs> - today 10:15:26 :
+Renaming <parse_line_ranges> to <parse_line_range_specs> - today 10:24:20 :
 
 
 --- a/src/black/__init__.py
@@ -21,36 +21,6 @@ Renaming <parse_line_ranges> to <parse_line_range_specs> - today 10:15:26 :
          except ValueError as e:
              err(str(e))
              ctx.exit(1)
-
---- a/tests/test_ranges.py
-+++ b/tests/test_ranges.py
-@@ -2,7 +2,7 @@
- 
- import pytest
- 
--from black.ranges import adjusted_lines, parse_line_ranges, sanitized_lines
-+from black.ranges import adjusted_lines, parse_line_range_specs, sanitized_lines
- 
- 
- @pytest.mark.parametrize(
-@@ -16,7 +16,7 @@
- def test_parse_line_ranges_valid(
-     lines_str: list[str], expected: list[tuple[int, int]]
- ) -> None:
--    assert parse_line_ranges(lines_str) == expected
-+    assert parse_line_range_specs(lines_str) == expected
- 
- 
- @pytest.mark.parametrize(
-@@ -30,7 +30,7 @@
- )
- def test_parse_line_ranges_invalid(lines_str: list[str]) -> None:
-     with pytest.raises(ValueError, match="Incorrect --line-ranges"):
--        parse_line_ranges(lines_str)
-+        parse_line_range_specs(lines_str)
- 
- 
- @pytest.mark.parametrize(
 
 --- a/tests/util.py
 +++ b/tests/util.py
@@ -84,4 +54,34 @@ Renaming <parse_line_ranges> to <parse_line_range_specs> - today 10:15:26 :
      lines: list[tuple[int, int]] = []
      for lines_str in line_ranges:
          parts = lines_str.split("-")
+
+--- a/tests/test_ranges.py
++++ b/tests/test_ranges.py
+@@ -2,7 +2,7 @@
+ 
+ import pytest
+ 
+-from black.ranges import adjusted_lines, parse_line_ranges, sanitized_lines
++from black.ranges import adjusted_lines, parse_line_range_specs, sanitized_lines
+ 
+ 
+ @pytest.mark.parametrize(
+@@ -16,7 +16,7 @@
+ def test_parse_line_ranges_valid(
+     lines_str: list[str], expected: list[tuple[int, int]]
+ ) -> None:
+-    assert parse_line_ranges(lines_str) == expected
++    assert parse_line_range_specs(lines_str) == expected
+ 
+ 
+ @pytest.mark.parametrize(
+@@ -30,7 +30,7 @@
+ )
+ def test_parse_line_ranges_invalid(lines_str: list[str]) -> None:
+     with pytest.raises(ValueError, match="Incorrect --line-ranges"):
+-        parse_line_ranges(lines_str)
++        parse_line_range_specs(lines_str)
+ 
+ 
+ @pytest.mark.parametrize(
 

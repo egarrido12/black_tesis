@@ -1,0 +1,14 @@
+--- src/black/__init__.py	2026-10-30 15:26:46.910162+00:00
++++ src/black/__init__.py	2026-10-30 15:34:31.002643+00:00
+@@ -1040,10 +1040,11 @@
+         report.done(src, changed)
+     except Exception as exc:
+         if report.verbose:
+             traceback.print_exc()
+         report.failed(src, exc)
++
+ 
+ def _detect_stdin(src):
+     if str(src) == "-":
+         is_stdin = True
+     elif str(src).startswith(STDIN_PLACEHOLDER):

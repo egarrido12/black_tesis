@@ -1,0 +1,25 @@
+Extract method <_append_diff_lines> - today 10:27:13 :
+
+
+--- a/src/black/output.py
++++ b/src/black/output.py
+@@ -80,6 +80,10 @@
+     a_lines = _splitlines_no_ff(a)
+     b_lines = _splitlines_no_ff(b)
+     diff_lines = []
++    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
++    return "".join(diff_lines)
++
++def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+     for line in difflib.unified_diff(
+         a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+     ):
+@@ -91,7 +95,6 @@
+         else:
+             diff_lines.append(line + "\n")
+             diff_lines.append("\\ No newline at end of file\n")
+-    return "".join(diff_lines)
+ 
+ 
+ def color_diff(contents: str) -> str:
+

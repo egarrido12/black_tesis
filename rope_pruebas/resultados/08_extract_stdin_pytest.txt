@@ -1,0 +1,116 @@
+........................................................................................................F.......... [ 15%]
+...................................................................... [ 24%]
+........................................................................ [ 34%]
+........................................................................ [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 63%]
+........................................................................ [ 73%]
+........................................................................ [ 82%]
+........................................................................ [ 92%]
+ss......................................................                 [100%]
+=================================== FAILURES ===================================
+__________________________ BlackTestCase.test_piping ___________________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_piping>
+
+    def test_piping(self) -> None:
+        _, source, expected = read_data_from_file(
+            PROJECT_ROOT / "src/black/__init__.py"
+        )
+        result = BlackRunner().invoke(
+            black.main,
+            [
+                "-",
+                "--fast",
+                f"--line-length={black.DEFAULT_LINE_LENGTH}",
+                f"--config={EMPTY_CONFIG}",
+            ],
+            input=BytesIO(source.encode("utf-8")),
+        )
+        self.assertEqual(result.exit_code, 0)
+>       self.assertFormatEqual(expected, result.stdout)
+
+tests/test_black.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/util.py:192: in assertFormatEqual
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = 'import io\nimport json\nimport os\nimport platform\nimport re\nimport sys\nimport tokenize\nimport traceback\nfrom co... import freeze_support\n\n        freeze_support()\n\n    main()\n\n\nif __name__ == "__main__":\n    patched_main()\n'
+actual = 'import io\nimport json\nimport os\nimport platform\nimport re\nimport sys\nimport tokenize\nimport traceback\nfrom co... import freeze_support\n\n        freeze_support()\n\n    main()\n\n\nif __name__ == "__main__":\n    patched_main()\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -16017,11 +16017,11 @@
+       /suite
+     /funcdef
+   /decorated
+   funcdef
+     NAME
+- '\n'
++ '\n\n'
+  'def'
+     NAME
+  ' '
+  '_detect_stdin'
+     parameters
+
+--- expected
++++ actual
+@@ -1040,10 +1040,11 @@
+         report.done(src, changed)
+     except Exception as exc:
+         if report.verbose:
+             traceback.print_exc()
+         report.failed(src, exc)
++
+ 
+ def _detect_stdin(src):
+     if str(src) == "-":
+         is_stdin = True
+     elif str(src).startswith(STDIN_PLACEHOLDER):
+
+=========================== short test summary info ============================
+SKIPPED [2] tests/test_no_ipynb.py: Marked with disabled optional tests (no_jupyter)
+FAILED tests/test_black.py::BlackTestCase::test_piping - AssertionError
+1 failed, 742 passed, 2 skipped, 31 subtests passed in 23.90s

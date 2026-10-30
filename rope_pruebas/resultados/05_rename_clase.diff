@@ -1,0 +1,42 @@
+Renaming <StringTransformer> to <BaseStringTransformer> - today 10:25:19 :
+
+
+--- a/src/black/trans.py
++++ b/src/black/trans.py
+@@ -215,7 +215,7 @@
+         return False
+ 
+ 
+-class StringTransformer(ABC):
++class BaseStringTransformer(ABC):
+     """
+     An implementation of the Transformer protocol that relies on its
+     subclasses overriding the template methods `do_match(...)` and
+@@ -411,7 +411,7 @@
+         return key in self._CUSTOM_SPLIT_MAP
+ 
+ 
+-class StringMerger(StringTransformer, CustomSplitMapMixin):
++class StringMerger(BaseStringTransformer, CustomSplitMapMixin):
+     """StringTransformer that merges strings together.
+ 
+     Requirements:
+@@ -919,7 +919,7 @@
+         return Ok(None)
+ 
+ 
+-class StringParenStripper(StringTransformer, CustomSplitMapMixin):
++class StringParenStripper(BaseStringTransformer, CustomSplitMapMixin):
+     """StringTransformer that strips surrounding parentheses from strings.
+ 
+     Requirements:
+@@ -1120,7 +1120,7 @@
+         return new_line
+ 
+ 
+-class BaseStringSplitter(StringTransformer, CustomSplitMapMixin):
++class BaseStringSplitter(BaseStringTransformer, CustomSplitMapMixin):
+     """
+     Abstract class for StringTransformers which transform a Line's strings by splitting
+     them or placing them on their own lines where necessary to avoid going over
+

@@ -1,0 +1,14 @@
+--- src/black/__init__.py	2026-10-30 15:26:18.620362+00:00
++++ src/black/__init__.py	2026-10-30 15:34:06.481058+00:00
+@@ -1043,10 +1043,11 @@
+         report.done(src, changed)
+     except Exception as exc:
+         if report.verbose:
+             traceback.print_exc()
+         report.failed(src, exc)
++
+ 
+ def _read_cache(no_cache, cache_dir, mode):
+     if no_cache:
+         cache = None
+     elif cache_dir is None:

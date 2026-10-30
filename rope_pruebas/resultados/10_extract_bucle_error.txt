@@ -1,0 +1,37 @@
+Traceback (most recent call last):
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 553, in ejecutar_rope
+    cambios = funcion(proyecto)
+              ^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 454, in ref_extract_bucle
+    return ExtractMethod(p, r, inicio, fin).get_changes('_collect_sources')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 82, in get_changes
+    new_contents = _ExtractPerformer(info).extract()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 287, in extract
+    extract_info = self._collect_info()
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 314, in _collect_info
+    self._find_matches(extract_collector)
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 328, in _find_matches
+    for region_match in region_matches:
+                        ^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/similarfinder.py", line 108, in get_matches
+    for match in self._get_matched_asts(code):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/similarfinder.py", line 117, in _get_matched_asts
+    wanted = self._create_pattern(code)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/similarfinder.py", line 124, in _create_pattern
+    node = ast.parse(expression)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/base/ast.py", line 33, in parse
+    return ast.parse(source, filename=filename, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/ast.py", line 52, in parse
+    return compile(source, filename, mode, flags,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 27
+    out(f'Skipping invalid source: "{${path}}"', fg="red")
+                                     ^
+SyntaxError: f-string: expecting a valid expression after '{'

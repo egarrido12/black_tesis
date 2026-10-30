@@ -1,0 +1,232 @@
+Renaming <dump_to_file> to <write_to_temp_file> - today 10:29:07 :
+
+
+--- a/src/black/__init__.py
++++ b/src/black/__init__.py
+@@ -65,7 +65,7 @@
+ from black.mode import Mode as Mode  # re-exported
+ from black.mode import Preview, TargetVersion, supports_feature
+ from black.nodes import STARS, is_number_token, is_simple_decorator_expression, syms
+-from black.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
++from black.output import color_diff, diff, write_to_temp_file, err, ipynb_diff, out
+ from black.parsing import (  # noqa F401
+     ASTSafetyError,
+     InvalidInput,
+@@ -1417,7 +1417,7 @@
+             # Black produced the invalid code, not the user. Reported as an
+             # internal error rather than as a syntax error in the user's file,
+             # keeping the parse location, which points into Black's output.
+-            log = dump_to_file(dst_contents)
++            log = write_to_temp_file(dst_contents)
+             exc.context = (
+                 f"INTERNAL ERROR: {_black_info()} produced invalid code:\n"
+                 f"{exc.context or 'cannot parse'}"
+@@ -1894,7 +1894,7 @@
+     try:
+         dst_ast = parse_ast(dst)
+     except Exception as exc:
+-        log = dump_to_file("".join(traceback.format_tb(exc.__traceback__)), dst)
++        log = write_to_temp_file("".join(traceback.format_tb(exc.__traceback__)), dst)
+         raise ASTSafetyError(
+             f"INTERNAL ERROR: {_black_info()} produced invalid code: {exc}. "
+             "Please report a bug on https://github.com/psf/black/issues.  "
+@@ -1904,7 +1904,7 @@
+     src_ast_str = "\n".join(stringify_ast(src_ast))
+     dst_ast_str = "\n".join(stringify_ast(dst_ast))
+     if src_ast_str != dst_ast_str:
+-        log = dump_to_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
++        log = write_to_temp_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
+         raise ASTSafetyError(
+             f"INTERNAL ERROR: {_black_info()} produced code that is not equivalent to"
+             " the source.  Please report a bug on https://github.com/psf/black/issues."
+@@ -1928,7 +1928,7 @@
+     # versions.
+     newdst = _format_str_once(dst, mode=mode, lines=lines)
+     if dst != newdst:
+-        log = dump_to_file(
++        log = write_to_temp_file(
+             str(mode),
+             diff(src, dst, "source", "first pass"),
+             diff(dst, newdst, "first pass", "second pass"),
+
+--- a/src/black/output.py
++++ b/src/black/output.py
+@@ -123,7 +123,7 @@
+ 
+ 
+ @mypyc_attr(patchable=True)
+-def dump_to_file(*output: str, ensure_final_newline: bool = True) -> str:
++def write_to_temp_file(*output: str, ensure_final_newline: bool = True) -> str:
+     """Dump `output` to a temporary file. Return path to the file."""
+     with tempfile.NamedTemporaryFile(
+         mode="w", prefix="blk_", suffix=".log", delete=False, encoding="utf8"
+
+--- a/tests/test_format.py
++++ b/tests/test_format.py
+@@ -19,7 +19,7 @@
+ 
+ @pytest.fixture(autouse=True)
+ def patch_dump_to_file(request: Any) -> Iterator[None]:
+-    with patch("black.dump_to_file", dump_to_stderr):
++    with patch("black.write_to_temp_file", dump_to_stderr):
+         yield
+ 
+ 
+
+--- a/tests/test_black.py
++++ b/tests/test_black.py
+@@ -224,7 +224,7 @@
+ 
+     def test_empty_ff(self) -> None:
+         expected = ""
+-        tmp_file = Path(black.dump_to_file())
++        tmp_file = Path(black.write_to_temp_file())
+         try:
+             self.assertFalse(ff(tmp_file, write_back=black.WriteBack.YES))
+             actual = tmp_file.read_text(encoding="utf-8")
+@@ -232,7 +232,7 @@
+             os.unlink(tmp_file)
+         self.assertFormatEqual(expected, actual)
+ 
+-    @patch("black.dump_to_file", dump_to_stderr)
++    @patch("black.write_to_temp_file", dump_to_stderr)
+     def test_one_empty_line(self) -> None:
+         for nl in ["\n", "\r\n"]:
+             source = expected = nl
+@@ -241,7 +241,7 @@
+     def test_one_empty_line_ff(self) -> None:
+         for nl in ["\n", "\r\n"]:
+             expected = nl
+-            tmp_file = Path(black.dump_to_file(nl))
++            tmp_file = Path(black.write_to_temp_file(nl))
+             if system() == "Windows":
+                 # Writing files in text mode automatically uses the system newline,
+                 # but in this case we don't want this for testing reasons. See:
+@@ -387,21 +387,21 @@
+ 
+     def test_expression_ff(self) -> None:
+         source, expected = read_data("cases", "expression.py")
+-        tmp_file = Path(black.dump_to_file(source))
++        tmp_file = Path(black.write_to_temp_file(source))
+         try:
+             self.assertTrue(ff(tmp_file, write_back=black.WriteBack.YES))
+             actual = tmp_file.read_text(encoding="utf-8")
+         finally:
+             os.unlink(tmp_file)
+         self.assertFormatEqual(expected, actual)
+-        with patch("black.dump_to_file", dump_to_stderr):
++        with patch("black.write_to_temp_file", dump_to_stderr):
+             black.assert_equivalent(source, actual)
+             black.assert_stable(source, actual, DEFAULT_MODE)
+ 
+     def test_expression_diff(self) -> None:
+         source, _ = read_data("cases", "expression.py")
+         expected, _ = read_data("cases", "expression.diff")
+-        tmp_file = Path(black.dump_to_file(source))
++        tmp_file = Path(black.write_to_temp_file(source))
+         diff_header = re.compile(
+             rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+             r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+@@ -416,7 +416,7 @@
+         actual = result.stdout
+         actual = diff_header.sub(DETERMINISTIC_HEADER, actual)
+         if expected != actual:
+-            dump = black.dump_to_file(actual)
++            dump = black.write_to_temp_file(actual)
+             msg = (
+                 "Expected diff isn't equal to the actual. If you made changes to"
+                 " expression.py and this is an anticipated difference, overwrite"
+@@ -427,7 +427,7 @@
+     def test_expression_diff_with_color(self) -> None:
+         source, _ = read_data("cases", "expression.py")
+         expected, _ = read_data("cases", "expression.diff")
+-        tmp_file = Path(black.dump_to_file(source))
++        tmp_file = Path(black.write_to_temp_file(source))
+         try:
+             result = BlackRunner().invoke(
+                 black.main,
+@@ -471,7 +471,7 @@
+         features = black.get_features_used(root)
+         self.assertIn(black.Feature.DEBUG_F_STRINGS, features)
+ 
+-    @patch("black.dump_to_file", dump_to_stderr)
++    @patch("black.write_to_temp_file", dump_to_stderr)
+     def test_string_quotes(self) -> None:
+         source, expected = read_data("miscellaneous", "string_quotes")
+         mode = black.Mode(unstable=True)
+@@ -484,7 +484,7 @@
+ 
+     def test_skip_source_first_line(self) -> None:
+         source, _ = read_data("miscellaneous", "invalid_header")
+-        tmp_file = Path(black.dump_to_file(source))
++        tmp_file = Path(black.write_to_temp_file(source))
+         # Full source should fail (invalid syntax at header)
+         self.invokeBlack([str(tmp_file), "--diff", "--check"], exit_code=123)
+         # So, skipping the first line should work
+@@ -552,7 +552,7 @@
+         expected, _ = read_data(
+             "miscellaneous", "expression_skip_magic_trailing_comma.diff"
+         )
+-        tmp_file = Path(black.dump_to_file(source))
++        tmp_file = Path(black.write_to_temp_file(source))
+         diff_header = re.compile(
+             rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+             r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+@@ -568,7 +568,7 @@
+         actual = diff_header.sub(DETERMINISTIC_HEADER, actual)
+         actual = actual.rstrip() + "\n"  # the diff output has a trailing space
+         if expected != actual:
+-            dump = black.dump_to_file(actual)
++            dump = black.write_to_temp_file(actual)
+             msg = (
+                 "Expected diff isn't equal to the actual. If you made changes to"
+                 " expression.py and this is an anticipated difference, overwrite"
+@@ -577,7 +577,7 @@
+             )
+             self.assertEqual(expected, actual, msg)
+ 
+-    @patch("black.dump_to_file", dump_to_stderr)
++    @patch("black.write_to_temp_file", dump_to_stderr)
+     def test_python37(self) -> None:
+         source_path = get_case_path("cases", "python37")
+         _, source, expected = read_data_from_file(source_path)
+@@ -588,7 +588,7 @@
+         # ensure black can parse this when the target is 3.7
+         self.invokeBlack([str(source_path), "--target-version", "py37"])
+ 
+-    @patch("black.dump_to_file", dump_to_stderr)
++    @patch("black.write_to_temp_file", dump_to_stderr)
+     def test_python315(self) -> None:
+         source_path = get_case_path("cases", "python315")
+         _, source, expected = read_data_from_file(source_path)
+@@ -1201,7 +1201,7 @@
+         actual = "\n".join(out_lines) + "\n"
+         log_name = ""
+         if expected != actual:
+-            log_name = black.dump_to_file(*out_lines)
++            log_name = black.write_to_temp_file(*out_lines)
+         self.assertEqual(
+             expected,
+             actual,
+@@ -1824,9 +1824,9 @@
+             ff(THIS_DIR / "util.py")
+ 
+     def test_invalid_config_return_code(self) -> None:
+-        tmp_file = Path(black.dump_to_file())
++        tmp_file = Path(black.write_to_temp_file())
+         try:
+-            tmp_config = Path(black.dump_to_file())
++            tmp_config = Path(black.write_to_temp_file())
+             tmp_config.unlink()
+             args = ["--config", str(tmp_config), str(tmp_file)]
+             self.invokeBlack(args, exit_code=2, ignore_config=False)
+@@ -2369,7 +2369,7 @@
+         # read_data adds a trailing newline
+         source = source.rstrip()
+         expected, _ = read_data("miscellaneous", "missing_final_newline.diff")
+-        tmp_file = Path(black.dump_to_file(source, ensure_final_newline=False))
++        tmp_file = Path(black.write_to_temp_file(source, ensure_final_newline=False))
+         diff_header = re.compile(
+             rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+             r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+

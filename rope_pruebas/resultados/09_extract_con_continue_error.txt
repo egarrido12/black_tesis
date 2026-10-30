@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 553, in ejecutar_rope
+    cambios = funcion(proyecto)
+              ^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 445, in ref_extract_con_continue
+    return ExtractMethod(p, r, inicio, fin).get_changes('_resolve_stdin_source')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 82, in get_changes
+    new_contents = _ExtractPerformer(info).extract()
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 284, in __init__
+    _ExceptionalConditionChecker()(self.info)
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 438, in __call__
+    self.base_conditions(info)
+  File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 458, in base_conditions
+    raise RefactoringError(
+rope.base.exceptions.RefactoringError: A break/continue without having a matching for/while loop.

@@ -1,4 +1,4 @@
-Renaming <lib2to3_parse> to <parse_to_tree> - today 10:14:55 :
+Renaming <lib2to3_parse> to <parse_to_tree> - today 10:23:49 :
 
 
 --- a/src/black/__init__.py
@@ -21,18 +21,6 @@ Renaming <lib2to3_parse> to <parse_to_tree> - today 10:14:55 :
          normalized_contents.lstrip(), target_versions=mode.target_versions
      )
  
-
---- a/src/black/parsing.py
-+++ b/src/black/parsing.py
-@@ -74,7 +74,7 @@
-     return grammars
- 
- 
--def lib2to3_parse(
-+def parse_to_tree(
-     src_txt: str, target_versions: Collection[TargetVersion] = ()
- ) -> Node:
-     """Given a string with source, return the lib2to3 Node."""
 
 --- a/src/black/debug.py
 +++ b/src/black/debug.py
@@ -73,6 +61,18 @@ Renaming <lib2to3_parse> to <parse_to_tree> - today 10:14:55 :
              bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
              list(bdv.visit(exp_node))
              actual_out = "\n".join(bdv.list_output)
+
+--- a/src/black/parsing.py
++++ b/src/black/parsing.py
+@@ -74,7 +74,7 @@
+     return grammars
+ 
+ 
+-def lib2to3_parse(
++def parse_to_tree(
+     src_txt: str, target_versions: Collection[TargetVersion] = ()
+ ) -> Node:
+     """Given a string with source, return the lib2to3 Node."""
 
 --- a/tests/test_black.py
 +++ b/tests/test_black.py

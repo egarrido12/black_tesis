@@ -6,8 +6,8 @@ Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según
 
 | Opciones de `Project(...)` | Carpetas de código detectadas | `import black` se resuelve en | Resultado |
 |---|---|---|---|
-| `(por defecto)` | `.` | el repositorio ORIGINAL (`/Users/estebangarrido10/black_tesis/src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/cases/preview_type_param_defaults_string_split.py> line <2>: expected '(' |
-| `source_folders=['src']` | `src`, `.` | la copia (`src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/cases/preview_type_param_defaults_string_split.py> line <2>: expected '(' |
+| `(por defecto)` | `.` | el repositorio ORIGINAL (`/Users/estebangarrido10/black_tesis/src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/miscellaneous/invalid_header.py> line <1>: invalid syntax |
+| `source_folders=['src']` | `src`, `.` | la copia (`src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/miscellaneous/invalid_header.py> line <1>: invalid syntax |
 | `ignore_syntax_errors=True` | `.` | el repositorio ORIGINAL (`/Users/estebangarrido10/black_tesis/src/black`) | 1 ocurrencias en 1 archivos |
 | `ignore_syntax_errors=True, source_folders=['src']` | `src`, `.` | la copia (`src/black`) | 40 ocurrencias en 5 archivos |
 
@@ -899,11 +899,11 @@ Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según
 
 - `src/black/__init__.py:73`
 - `src/black/__init__.py:1476`
-- `src/black/parsing.py:77`
 - `src/black/debug.py:7`
 - `src/black/debug.py:54`
 - `tests/util.py:61`
 - `tests/util.py:70`
+- `src/black/parsing.py:77`
 - `tests/test_black.py:341`
 - `tests/test_black.py:350`
 - `tests/test_black.py:367`
@@ -942,12 +942,12 @@ Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según
 
 - `src/black/__init__.py:80`
 - `src/black/__init__.py:754`
-- `tests/test_ranges.py:5`
-- `tests/test_ranges.py:19`
-- `tests/test_ranges.py:33`
 - `tests/util.py:19`
 - `tests/util.py:294`
 - `src/black/ranges.py:22`
+- `tests/test_ranges.py:5`
+- `tests/test_ranges.py:19`
+- `tests/test_ranges.py:33`
 
 ### `is_changed` (2 ocurrencias)
 

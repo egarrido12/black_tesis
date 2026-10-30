@@ -1,0 +1,24 @@
+Renaming <is_changed> to <has_changed> - today 10:24:47 :
+
+
+--- a/src/black/cache.py
++++ b/src/black/cache.py
+@@ -106,7 +106,7 @@
+         hash = Cache.hash_digest(path)
+         return FileData(stat.st_mtime, stat.st_size, hash)
+ 
+-    def is_changed(self, source: Path) -> bool:
++    def has_changed(self, source: Path) -> bool:
+         """Check if source has changed compared to cached version."""
+         res_src = source.resolve()
+         old = self.file_data.get(str(res_src))
+@@ -131,7 +131,7 @@
+         changed: set[Path] = set()
+         done: set[Path] = set()
+         for src in sources:
+-            if self.is_changed(src):
++            if self.has_changed(src):
+                 changed.add(src)
+             else:
+                 done.add(src)
+

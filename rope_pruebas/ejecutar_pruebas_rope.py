@@ -106,7 +106,7 @@ def correr_pytest(carpeta):
     # y Cookiecutter, y la medición de energía no depende de cuántos núcleos
     # reparta xdist.
     proc = subprocess.run(
-        [PYTHON, '-m', 'pytest', 'tests', '-q', '-rs', '-p', 'no:cacheprovider'],
+        [PYTHON, '-m', 'pytest', 'tests', '-q', '-rsfE', '-p', 'no:cacheprovider'],
         cwd=carpeta, capture_output=True, text=True, env=entorno(carpeta),
     )
     salida = proc.stdout + proc.stderr
@@ -569,7 +569,9 @@ def aplicar(nombre, tipo, descripcion, funcion, base):
         carpeta, cambios, error, tiempo, med = ejecutar_rope(nombre, funcion)
         tiempos.append(tiempo)
         mediciones.append(med)
-        descripciones.add(cambios.get_description() if error is None
+        # La primera línea de la descripción trae la hora ("- today 10:22:23"),
+        # así que se compara solo el diff.
+        descripciones.add(cambios.get_description().split('\n', 1)[1] if error is None
                           else '%s: %s' % (type(error).__name__, error))
     fila['tiempo_rope_s'] = round(statistics.mean(tiempos), 3)
     fila['tiempos_rope_s'] = [round(t, 3) for t in tiempos]

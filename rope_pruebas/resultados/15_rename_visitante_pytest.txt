@@ -1,0 +1,2740 @@
+........................................................................................F..............F........... [ 15%]
+....................F................................................. [ 24%]
+......................................................F................. [ 34%]
+.......................F.........F...................................... [ 44%]
+.....................................F.......F.......................... [ 53%]
+......................................F.......F..F...................... [ 63%]
+........F............................................................... [ 73%]
+................F...F................................................... [ 82%]
+........................................................................ [ 92%]
+ss......................................................                 [100%]
+=================================== FAILURES ===================================
+___________________ BlackTestCase.test_multi_file_force_pyi ____________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_multi_file_force_pyi>
+
+    @event_loop()
+    def test_multi_file_force_pyi(self) -> None:
+        reg_mode = DEFAULT_MODE
+        pyi_mode = replace(DEFAULT_MODE, is_pyi=True)
+        contents, expected = read_data("miscellaneous", "force_pyi")
+        with cache_dir() as workspace:
+            paths = [
+                (workspace / "file1.py").resolve(),
+                (workspace / "file2.py").resolve(),
+            ]
+            for path in paths:
+                path.write_text(contents, encoding="utf-8")
+            self.invokeBlack([str(p) for p in paths] + ["--pyi"])
+            for path in paths:
+                actual = path.read_text(encoding="utf-8")
+>               self.assertEqual(actual, expected)
+E               AssertionError: 'from[259 chars]None:\n    ...\n\nclass F(A, C): ...\n\ndef sp[112 chars]..\n' != 'from[259 chars]None: ...\n\nclass F(A, C): ...\n\ndef spam() [107 chars]..\n'
+E                 from typing import Union
+E                 
+E                 @bird
+E                 def zoo(): ...
+E                 
+E                 class A: ...
+E                 
+E                 @bar
+E                 class B:
+E                     def BMethod(self) -> None: ...
+E                     @overload
+E                     def BMethod(self, arg: List[str]) -> None: ...
+E                 
+E                 class C: ...
+E                 
+E                 @hmm
+E                 class D: ...
+E                 
+E                 class E: ...
+E                 
+E                 @baz
+E               - def foo() -> None:
+E               + def foo() -> None: ...
+E               ?                   ++++
+E               -     ...
+E                 
+E                 class F(A, C): ...
+E                 
+E                 def spam() -> None: ...
+E                 @overload
+E                 def spam(arg: str) -> str: ...
+E                 
+E                 var: int = 1
+E                 
+E                 def eggs() -> Union[str, int]: ...
+
+tests/test_black.py:1389: AssertionError
+______________________ BlackTestCase.test_pipe_force_pyi _______________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_pipe_force_pyi>
+
+    def test_pipe_force_pyi(self) -> None:
+        source, expected = read_data("miscellaneous", "force_pyi")
+        result = BlackRunner().invoke(
+            black.main, ["-", "-q", "--pyi"], input=BytesIO(source.encode("utf-8"))
+        )
+        self.assertEqual(result.exit_code, 0)
+        actual = result.output
+>       self.assertFormatEqual(actual, expected)
+
+tests/test_black.py:1404: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/util.py:192: in assertFormatEqual
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = 'from typing import Union\n\n@bird\ndef zoo(): ...\n\nclass A: ...\n\n@bar\nclass B:\n    def BMethod(self) -> None: ....spam() -> None: ...\n@overload\ndef spam(arg: str) -> str: ...\n\nvar: int = 1\n\ndef eggs() -> Union[str, int]: ...\n'
+actual = 'from typing import Union\n\n@bird\ndef zoo(): ...\n\nclass A: ...\n\n@bar\nclass B:\n    def BMethod(self) -> None: ....spam() -> None: ...\n@overload\ndef spam(arg: str) -> str: ...\n\nvar: int = 1\n\ndef eggs() -> Union[str, int]: ...\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -322,31 +322,23 @@
+       NAME
+  ' '
+  'None'
+       COLON
+  ':'
+-      suite
++      simple_stmt
++        atom
++          DOT
++ ' '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
+         NEWLINE
+  '\n'
+-        INDENT
+- ''
+-        simple_stmt
+-          atom
+-            DOT
+- '    '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
+-          NEWLINE
+- '\n'
+-        /simple_stmt
+-        DEDENT
+- ''
+-      /suite
++      /simple_stmt
+     /funcdef
+   /decorated
+   classdef
+     NAME
+  '\n'
+
+--- expected
++++ actual
+@@ -17,12 +17,11 @@
+ class D: ...
+ 
+ class E: ...
+ 
+ @baz
+-def foo() -> None:
+-    ...
++def foo() -> None: ...
+ 
+ class F(A, C): ...
+ 
+ def spam() -> None: ...
+ @overload
+
+___________________ BlackTestCase.test_single_file_force_pyi ___________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_single_file_force_pyi>
+
+    def test_single_file_force_pyi(self) -> None:
+        pyi_mode = replace(DEFAULT_MODE, is_pyi=True)
+        contents, expected = read_data("miscellaneous", "force_pyi")
+        with cache_dir() as workspace:
+            path = (workspace / "file.py").resolve()
+            path.write_text(contents, encoding="utf-8")
+            self.invokeBlack([str(path), "--pyi"])
+            actual = path.read_text(encoding="utf-8")
+            # verify cache with --pyi is separate
+            pyi_cache = black.Cache.read(pyi_mode, workspace)
+            assert not pyi_cache.is_changed(path)
+            normal_cache = black.Cache.read(DEFAULT_MODE, workspace)
+            assert normal_cache.is_changed(path)
+>       self.assertFormatEqual(expected, actual)
+
+tests/test_black.py:1370: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/util.py:192: in assertFormatEqual
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = 'from typing import Union\n\n@bird\ndef zoo(): ...\n\nclass A: ...\n\n@bar\nclass B:\n    def BMethod(self) -> None: ....spam() -> None: ...\n@overload\ndef spam(arg: str) -> str: ...\n\nvar: int = 1\n\ndef eggs() -> Union[str, int]: ...\n'
+actual = 'from typing import Union\n\n@bird\ndef zoo(): ...\n\nclass A: ...\n\n@bar\nclass B:\n    def BMethod(self) -> None: ....spam() -> None: ...\n@overload\ndef spam(arg: str) -> str: ...\n\nvar: int = 1\n\ndef eggs() -> Union[str, int]: ...\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -322,23 +322,31 @@
+       NAME
+  ' '
+  'None'
+       COLON
+  ':'
+-      simple_stmt
+-        atom
+-          DOT
+- ' '
+- '.'
+-          DOT
+- '.'
+-          DOT
+- '.'
+-        /atom
++      suite
+         NEWLINE
+  '\n'
+-      /simple_stmt
++        INDENT
++ ''
++        simple_stmt
++          atom
++            DOT
++ '    '
++ '.'
++            DOT
++ '.'
++            DOT
++ '.'
++          /atom
++          NEWLINE
++ '\n'
++        /simple_stmt
++        DEDENT
++ ''
++      /suite
+     /funcdef
+   /decorated
+   classdef
+     NAME
+  '\n'
+
+--- expected
++++ actual
+@@ -17,11 +17,12 @@
+ class D: ...
+ 
+ class E: ...
+ 
+ @baz
+-def foo() -> None: ...
++def foo() -> None:
++    ...
+ 
+ class F(A, C): ...
+ 
+ def spam() -> None: ...
+ @overload
+
+________________________ BlackDTestCase.test_blackd_pyi ________________________
+
+self = <tests.test_blackd.BlackDTestCase testMethod=test_blackd_pyi>
+
+    async def test_blackd_pyi(self) -> None:
+        source, expected = read_data("cases", "stub.py")
+        response = await self.client.post(
+            "/", data=source, headers={blackd.PYTHON_VARIANT_HEADER: "pyi"}
+        )
+        self.assertEqual(response.status, 200)
+>       self.assertEqual(await response.text(), expected)
+E       AssertionError: 'X: i[25 chars]ss D:\n    ...\n\nclass C:\n    ...\n\nclass B[1142 chars]..\n' != 'X: i[25 chars]ss D: ...\nclass C: ...\n\nclass B:\n    this_[1112 chars]..\n'
+E       Diff is 1452 characters long. Set self.maxDiff to None to see it.
+
+tests/test_blackd.py:144: AssertionError
+___________________ test_simple_format[target_version_flag] ____________________
+
+filename = 'target_version_flag'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = '# this is invalid in versions below py312\nclass ClassA[T: str]:\n    def method1(self) -> T: ...\n'
+actual = '# this is invalid in versions below py312\nclass ClassA[T: str]:\n    def method1(self) -> T:\n        ...\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -49,23 +49,31 @@
+         NAME
+  ' '
+  'T'
+         COLON
+  ':'
+-        simple_stmt
+-          atom
+-            DOT
+- ' '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
++        suite
+           NEWLINE
+  '\n'
+-        /simple_stmt
++          INDENT
++ ''
++          simple_stmt
++            atom
++              DOT
++ '        '
++ '.'
++              DOT
++ '.'
++              DOT
++ '.'
++            /atom
++            NEWLINE
++ '\n'
++          /simple_stmt
++          DEDENT
++ ''
++        /suite
+       /funcdef
+       DEDENT
+  ''
+     /suite
+   /classdef
+
+--- expected
++++ actual
+@@ -1,3 +1,4 @@
+ # this is invalid in versions below py312
+ class ClassA[T: str]:
+-    def method1(self) -> T: ...
++    def method1(self) -> T:
++        ...
+
+____________________ test_simple_format[preview_comments7] _____________________
+
+filename = 'preview_comments7'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = 'from .config import (\n    Any,\n    Bool,\n    ConfigType,\n    ConfigTypeAttributes,\n    Int,\n    Path,\n    #  S...ry very very very very very very very very very very"\n        " very long string literal"\n    )  # type: ignore\n}\n'
+actual = 'from .config import (\n    Any,\n    Bool,\n    ConfigType,\n    ConfigTypeAttributes,\n    Int,\n    Path,\n    #  S...ry very very very very very very very very very very"\n        " very long string literal"\n    )  # type: ignore\n}\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -1074,23 +1074,31 @@
+  '\n    '
+  ')'
+           /parameters
+           COLON
+  ':'
+-          simple_stmt
+-            atom
+-              DOT
+- ' '
+- '.'
+-              DOT
+- '.'
+-              DOT
+- '.'
+-            /atom
++          suite
+             NEWLINE
+  '\n'
+-          /simple_stmt
++            INDENT
++ ''
++            simple_stmt
++              atom
++                DOT
++ '        '
++ '.'
++                DOT
++ '.'
++                DOT
++ '.'
++              /atom
++              NEWLINE
++ '\n'
++            /simple_stmt
++            DEDENT
++ ''
++          /suite
+         /funcdef
+       /decorated
+       DEDENT
+  ''
+     /suite
+
+--- expected
++++ actual
+@@ -140,11 +140,12 @@
+             ),
+         ],
+     )
+     def test_fails_invalid_post_data(
+         self, pyramid_config, db_request, post_data, message
+-    ): ...
++    ):
++        ...
+ 
+ 
+ square = Square(4)  # type: Optional[Square]
+ 
+ # Regression test for https://github.com/psf/black/issues/3756.
+
+_________________________ test_simple_format[fmtonoff] _________________________
+
+filename = 'fmtonoff'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = "#!/usr/bin/env python3\nimport asyncio\nimport sys\n\nfrom third_party import X, Y, Z\n\nfrom library import some_con... 4\n# fmt: on\n\n# fmt: off\nyield  'hello'\n# No formatting to the end of the file\nl=[1,2,3]\nd={'a':1,\n   'b':2}\n"
+actual = "#!/usr/bin/env python3\nimport asyncio\nimport sys\n\nfrom third_party import X, Y, Z\n\nfrom library import some_con... 4\n# fmt: on\n\n# fmt: off\nyield  'hello'\n# No formatting to the end of the file\nl=[1,2,3]\nd={'a':1,\n   'b':2}\n"
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -1190,23 +1190,31 @@
+       RPAR
+  ')'
+     /parameters
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
++    suite
+       NEWLINE
+  '\n'
+-    /simple_stmt
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   simple_stmt
+     expr_stmt
+       NAME
+  '\n\n'
+
+--- expected
++++ actual
+@@ -52,11 +52,12 @@
+     f: int = -1,
+     g: int = 1 if False else 2,
+     h: str = "",
+     i: str = r"",
+ ): ...
+-def spaces2(result=_core.Value(None)): ...
++def spaces2(result=_core.Value(None)):
++    ...
+ 
+ 
+ something = {
+     # fmt: off
+     key: 'value',
+
+______________ test_simple_format[pep604_union_types_line_breaks] ______________
+
+filename = 'pep604_union_types_line_breaks'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = '# This has always worked\nz = (\n    Loooooooooooooooooooooooong\n    | Loooooooooooooooooooooooong\n    | Looooooooo..._settings: dict[str, str | list[str]] | None = None,\n) -> list[str]:\n    return ["pathspec", "pyproject_metadata"]\n'
+actual = '# This has always worked\nz = (\n    Loooooooooooooooooooooooong\n    | Loooooooooooooooooooooooong\n    | Looooooooo..._settings: dict[str, str | list[str]] | None = None,\n) -> list[str]:\n    return ["pathspec", "pyproject_metadata"]\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -901,23 +901,31 @@
+  '\n'
+  ')'
+     /parameters
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
+  '.'
+-        DOT
++          DOT
+  '.'
+-        DOT
++          DOT
+  '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   funcdef
+     NAME
+  '\n\n'
+  'def'
+
+--- expected
++++ actual
+@@ -96,11 +96,12 @@
+ def f(
+     max_jobs: int | None = Option(
+         None, help="Maximum number of jobs to launch. And some additional text."
+     ),
+     another_option: bool = False,
+-): ...
++):
++    ...
+ 
+ 
+ def get_requires_for_build_sdist(
+     config_settings: dict[str, str | list[str]] | None = None,
+ ) -> list[str]:
+
+________________________ test_simple_format[ignore_pyi] ________________________
+
+filename = 'ignore_pyi'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = "def f():  # type: ignore\n    ...\n\nclass x:  # some comment\n    ...\n\nclass y: ...  # comment\n\n# whitespace doe...next line has a trailing space and tab)\nclass z: ...\n\ndef g():\n    # hi\n    ...\n\ndef h():\n    ...\n    # bye\n"
+actual = "def f():  # type: ignore\n    ...\n\nclass x:  # some comment\n    ...\n\nclass y:\n    ...  # comment\n\n# whitespac...line has a trailing space and tab)\nclass z:\n    ...\n\ndef g():\n    # hi\n    ...\n\ndef h():\n    ...\n    # bye\n"
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -75,47 +75,63 @@
+     NAME
+  ' '
+  'y'
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
+-      NEWLINE
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
+  '  # comment'
+  '\n'
+-    /simple_stmt
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /classdef
+   classdef
+     NAME
+  "\n# whitespace doesn't matter (note the next line has a trailing space and tab)\n"
+  'class'
+     NAME
+  ' '
+  'z'
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /classdef
+   funcdef
+     NAME
+  '\n'
+  'def'
+
+--- expected
++++ actual
+@@ -2,14 +2,16 @@
+     ...
+ 
+ class x:  # some comment
+     ...
+ 
+-class y: ...  # comment
++class y:
++    ...  # comment
+ 
+ # whitespace doesn't matter (note the next line has a trailing space and tab)
+-class z: ...
++class z:
++    ...
+ 
+ def g():
+     # hi
+     ...
+ 
+
+_________________________ test_simple_format[python39] _________________________
+
+filename = 'python39'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = '@relaxed_decorator[0]\ndef f(): ...\n\n\n@relaxed_decorator[\n    extremely_long_name_that_definitely_will_not_fit_on...nt_fit := complex.expression(\n    with_long="arguments_value_that_wont_fit_at_the_end_of_the_line"\n)\ndef f(): ...\n'
+actual = '@relaxed_decorator[0]\ndef f():\n    ...\n\n\n@relaxed_decorator[\n    extremely_long_name_that_definitely_will_not_f...t := complex.expression(\n    with_long="arguments_value_that_wont_fit_at_the_end_of_the_line"\n)\ndef f():\n    ...\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -30,23 +30,31 @@
+         RPAR
+  ')'
+       /parameters
+       COLON
+  ':'
+-      simple_stmt
+-        atom
+-          DOT
+- ' '
+- '.'
+-          DOT
+- '.'
+-          DOT
+- '.'
+-        /atom
++      suite
+         NEWLINE
+  '\n'
+-      /simple_stmt
++        INDENT
++ ''
++        simple_stmt
++          atom
++            DOT
++ '    '
++ '.'
++            DOT
++ '.'
++            DOT
++ '.'
++          /atom
++          NEWLINE
++ '\n'
++        /simple_stmt
++        DEDENT
++ ''
++      /suite
+     /funcdef
+   /decorated
+   decorated
+     decorator
+       AT
+@@ -81,23 +89,31 @@
+         RPAR
+  ')'
+       /parameters
+       COLON
+  ':'
+-      simple_stmt
+-        atom
+-          DOT
+- ' '
+- '.'
+-          DOT
+- '.'
+-          DOT
+- '.'
+-        /atom
++      suite
+         NEWLINE
+  '\n'
+-      /simple_stmt
++        INDENT
++ ''
++        simple_stmt
++          atom
++            DOT
++ '    '
++ '.'
++            DOT
++ '.'
++            DOT
++ '.'
++          /atom
++          NEWLINE
++ '\n'
++        /simple_stmt
++        DEDENT
++ ''
++      /suite
+     /funcdef
+   /decorated
+   decorated
+     decorator
+       AT
+@@ -152,23 +168,31 @@
+         RPAR
+  ')'
+       /parameters
+       COLON
+  ':'
+-      simple_stmt
+-        atom
+-          DOT
+- ' '
+- '.'
+-          DOT
+- '.'
+-          DOT
+- '.'
+-        /atom
++      suite
+         NEWLINE
+  '\n'
+-      /simple_stmt
++        INDENT
++ ''
++        simple_stmt
++          atom
++            DOT
++ '    '
++ '.'
++            DOT
++ '.'
++            DOT
++ '.'
++          /atom
++          NEWLINE
++ '\n'
++        /simple_stmt
++        DEDENT
++ ''
++      /suite
+     /funcdef
+   /decorated
+   ENDMARKER
+  ''
+ /file_input
+\ No newline at end of file
+
+--- expected
++++ actual
+@@ -1,14 +1,17 @@
+ @relaxed_decorator[0]
+-def f(): ...
++def f():
++    ...
+ 
+ 
+ @relaxed_decorator[
+     extremely_long_name_that_definitely_will_not_fit_on_one_line_of_standard_length
+ ]
+-def f(): ...
++def f():
++    ...
+ 
+ 
+ @extremely_long_variable_name_that_doesnt_fit := complex.expression(
+     with_long="arguments_value_that_wont_fit_at_the_end_of_the_line"
+ )
+-def f(): ...
++def f():
++    ...
+
+__________________ test_simple_format[pep_572_remove_parens] ___________________
+
+filename = 'pep_572_remove_parens'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = 'if foo := 0:\n    pass\n\nif foo := 1:\n    pass\n\nif y := 5 + 5:\n    pass\n\ny = (x := 0)\n\ny += (x := 0)\n\n(y :...ss\n\n    with (x := await a, y := await b):\n        pass\n\n    with (x := await a), (y := await b):\n        pass\n'
+actual = 'if foo := 0:\n    pass\n\nif foo := 1:\n    pass\n\nif y := 5 + 5:\n    pass\n\ny = (x := 0)\n\ny += (x := 0)\n\n(y :...ss\n\n    with (x := await a, y := await b):\n        pass\n\n    with (x := await a), (y := await b):\n        pass\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -393,23 +393,31 @@
+       RPAR
+  ')'
+     /parameters
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
+  '.'
+-        DOT
++          DOT
+  '.'
+-        DOT
++          DOT
+  '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   funcdef
+     NAME
+  '\n\n'
+  'def'
+@@ -453,23 +461,31 @@
+       RPAR
+  ')'
+     /parameters
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
+  '.'
+-        DOT
++          DOT
+  '.'
+-        DOT
++          DOT
+  '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   simple_stmt
+     lambdef
+       NAME
+  '\n\n'
+
+--- expected
++++ actual
+@@ -21,14 +21,16 @@
+ assert (foo := 42 - 12)
+ 
+ foo(x=(y := f(x)))
+ 
+ 
+-def foo(answer=(p := 42)): ...
++def foo(answer=(p := 42)):
++    ...
+ 
+ 
+-def foo2(answer: (p := 42) = 5): ...
++def foo2(answer: (p := 42) = 5):
++    ...
+ 
+ 
+ lambda: (x := 1)
+ 
+ a[(x := 12)]
+
+__________________ test_simple_format[dummy_implementations] ___________________
+
+filename = 'dummy_implementations'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = 'from typing import NoReturn, Protocol, Union, overload\n\n\nclass Empty: ...\n\n\ndef dummy(a): ...\nasync def other(...self):  # Comment 1\n        ...  # Comment 2\n\n\nclass ClassH:\n    def f(self):\n        # Comment\n\n        ...\n'
+actual = 'from typing import NoReturn, Protocol, Union, overload\n\n\nclass Empty:\n    ...\n\n\ndef dummy(a): ...\nasync def o...self):  # Comment 1\n        ...  # Comment 2\n\n\nclass ClassH:\n    def f(self):\n        # Comment\n\n        ...\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -40,23 +40,31 @@
+     NAME
+  ' '
+  'Empty'
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /classdef
+   funcdef
+     NAME
+  '\n\n'
+  'def'
+@@ -491,23 +499,31 @@
+         NAME
+  ' '
+  'int'
+         COLON
+  ':'
+-        simple_stmt
+-          atom
+-            DOT
+- ' '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
++        suite
+           NEWLINE
+  '\n'
+-        /simple_stmt
++          INDENT
++ ''
++          simple_stmt
++            atom
++              DOT
++ '        '
++ '.'
++              DOT
++ '.'
++              DOT
++ '.'
++            /atom
++            NEWLINE
++ '\n'
++          /simple_stmt
++          DEDENT
++ ''
++        /suite
+       /funcdef
+       funcdef
+         NAME
+  '\n    '
+  'def'
+@@ -593,23 +609,31 @@
+         NAME
+  ' '
+  'str'
+         COLON
+  ':'
+-        simple_stmt
+-          atom
+-            DOT
+- ' '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
++        suite
+           NEWLINE
+  '\n'
+-        /simple_stmt
++          INDENT
++ ''
++          simple_stmt
++            atom
++              DOT
++ '        '
++ '.'
++              DOT
++ '.'
++              DOT
++ '.'
++            /atom
++            NEWLINE
++ '\n'
++          /simple_stmt
++          DEDENT
++ ''
++        /suite
+       /funcdef
+       DEDENT
+  ''
+     /suite
+   /classdef
+@@ -626,27 +650,36 @@
+       RPAR
+  ')'
+     /parameters
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   decorated
+     decorator
+       AT
++ '\n\n'
+  '@'
+       NAME
+  'dummy'
+       NEWLINE
+  '\n'
+@@ -663,23 +696,31 @@
+         RPAR
+  ')'
+       /parameters
+       COLON
+  ':'
+-      simple_stmt
+-        atom
+-          DOT
+- ' '
+- '.'
+-          DOT
+- '.'
+-          DOT
+- '.'
+-        /atom
++      suite
+         NEWLINE
+  '\n'
+-      /simple_stmt
++        INDENT
++ ''
++        simple_stmt
++          atom
++            DOT
++ '    '
++ '.'
++            DOT
++ '.'
++            DOT
++ '.'
++          /atom
++          NEWLINE
++ '\n'
++        /simple_stmt
++        DEDENT
++ ''
++      /suite
+     /funcdef
+   /decorated
+   funcdef
+     NAME
+  '\n\n'
+@@ -693,23 +734,31 @@
+       RPAR
+  ')'
+     /parameters
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   decorated
+     decorator
+       AT
+  '\n\n'
+@@ -1038,24 +1087,32 @@
+       RPAR
+  ')'
+     /parameters
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
+-      NEWLINE
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
+  '  # still a dummy'
+  '\n'
+-    /simple_stmt
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   if_stmt
+     NAME
+  '\n\n'
+  'if'
+@@ -1150,23 +1207,31 @@
+             RPAR
+  ')'
+           /parameters
+           COLON
+  ':'
+-          simple_stmt
+-            atom
+-              DOT
+- ' '
+- '.'
+-              DOT
+- '.'
+-              DOT
+- '.'
+-            /atom
++          suite
+             NEWLINE
+  '\n'
+-          /simple_stmt
++            INDENT
++ ''
++            simple_stmt
++              atom
++                DOT
++ '        '
++ '.'
++                DOT
++ '.'
++                DOT
++ '.'
++              /atom
++              NEWLINE
++ '\n'
++            /simple_stmt
++            DEDENT
++ ''
++          /suite
+         /funcdef
+       /async_stmt
+       DEDENT
+  ''
+     /suite
+@@ -1190,23 +1255,31 @@
+         RPAR
+  ')'
+       /parameters
+       COLON
+  ':'
+-      simple_stmt
+-        atom
+-          DOT
+- ' '
+- '.'
+-          DOT
+- '.'
+-          DOT
+- '.'
+-        /atom
++      suite
+         NEWLINE
+  '\n'
+-      /simple_stmt
++        INDENT
++ ''
++        simple_stmt
++          atom
++            DOT
++ '    '
++ '.'
++            DOT
++ '.'
++            DOT
++ '.'
++          /atom
++          NEWLINE
++ '\n'
++        /simple_stmt
++        DEDENT
++ ''
++      /suite
+     /funcdef
+   /async_stmt
+   decorated
+     decorator
+       AT
+@@ -1235,23 +1308,31 @@
+           RPAR
+  ')'
+         /parameters
+         COLON
+  ':'
+-        simple_stmt
+-          atom
+-            DOT
+- ' '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
++        suite
+           NEWLINE
+  '\n'
+-        /simple_stmt
++          INDENT
++ ''
++          simple_stmt
++            atom
++              DOT
++ '    '
++ '.'
++              DOT
++ '.'
++              DOT
++ '.'
++            /atom
++            NEWLINE
++ '\n'
++          /simple_stmt
++          DEDENT
++ ''
++        /suite
+       /funcdef
+     /async_funcdef
+   /decorated
+   classdef
+     NAME
+@@ -1282,23 +1363,31 @@
+           RPAR
+  ')'
+         /parameters
+         COLON
+  ':'
+-        simple_stmt
+-          atom
+-            DOT
+- ' '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
++        suite
+           NEWLINE
+  '\n'
+-        /simple_stmt
++          INDENT
++ ''
++          simple_stmt
++            atom
++              DOT
++ '        '
++ '.'
++              DOT
++ '.'
++              DOT
++ '.'
++            /atom
++            NEWLINE
++ '\n'
++          /simple_stmt
++          DEDENT
++ ''
++        /suite
+       /funcdef
+       DEDENT
+  ''
+     /suite
+   /classdef
+@@ -1331,23 +1420,31 @@
+           RPAR
+  ')'
+         /parameters
+         COLON
+  ':'
+-        simple_stmt
+-          atom
+-            DOT
+- ' '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
++        suite
+           NEWLINE
+  '\n'
+-        /simple_stmt
++          INDENT
++ ''
++          simple_stmt
++            atom
++              DOT
++ '        '
++ '.'
++              DOT
++ '.'
++              DOT
++ '.'
++            /atom
++            NEWLINE
++ '\n'
++          /simple_stmt
++          DEDENT
++ ''
++        /suite
+       /funcdef
+       DEDENT
+  ''
+     /suite
+   /classdef
+@@ -1498,27 +1595,35 @@
+           RPAR
+  ')'
+         /parameters
+         COLON
+  ':'
+-        simple_stmt
+-          atom
+-            DOT
+- ' '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
++        suite
+           NEWLINE
+  '\n'
+-        /simple_stmt
++          INDENT
++ ''
++          simple_stmt
++            atom
++              DOT
++ '        '
++ '.'
++              DOT
++ '.'
++              DOT
++ '.'
++            /atom
++            NEWLINE
++ '\n'
++          /simple_stmt
++          DEDENT
++ ''
++        /suite
+       /funcdef
+       funcdef
+         NAME
+- '    '
++ '\n    '
+  'def'
+         NAME
+  ' '
+  'f2'
+         parameters
+@@ -1590,24 +1695,32 @@
+           RPAR
+  ')'
+         /parameters
+         COLON
+  ':'
+-        simple_stmt
+-          atom
+-            DOT
+- ' '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
++        suite
+           NEWLINE
++ '\n'
++          INDENT
++ ''
++          simple_stmt
++            atom
++              DOT
++ '        '
++ '.'
++              DOT
++ '.'
++              DOT
++ '.'
++            /atom
++            NEWLINE
+  '  # Comment 2'
+  '\n'
+-        /simple_stmt
++          /simple_stmt
++          DEDENT
++ ''
++        /suite
+       /funcdef
+       DEDENT
+  ''
+     /suite
+   /classdef
+
+--- expected
++++ actual
+@@ -1,9 +1,10 @@
+ from typing import NoReturn, Protocol, Union, overload
+ 
+ 
+-class Empty: ...
++class Empty:
++    ...
+ 
+ 
+ def dummy(a): ...
+ async def other(b): ...
+ 
+@@ -19,22 +20,29 @@
+         raise TypeError
+     return arg
+ 
+ 
+ class Proto(Protocol):
+-    def foo(self, a: int) -> int: ...
++    def foo(self, a: int) -> int:
++        ...
+ 
+     def bar(self, b: str) -> str: ...
+-    def baz(self, c: bytes) -> str: ...
++    def baz(self, c: bytes) -> str:
++        ...
+ 
+ 
+-def dummy_two(): ...
+-@dummy
+-def dummy_three(): ...
++def dummy_two():
++    ...
+ 
+ 
+-def dummy_four(): ...
++@dummy
++def dummy_three():
++    ...
++
++
++def dummy_four():
++    ...
+ 
+ 
+ @overload
+ def b(arg: int) -> int: ...
+ 
+@@ -49,37 +57,43 @@
+     if not isinstance(arg, (int, str)):
+         raise TypeError
+     return arg
+ 
+ 
+-def has_comment(): ...  # still a dummy
++def has_comment():
++    ...  # still a dummy
+ 
+ 
+ if some_condition:
+     ...
+ 
+ if already_dummy:
+     ...
+ 
+ 
+ class AsyncCls:
+-    async def async_method(self): ...
++    async def async_method(self):
++        ...
+ 
+ 
+-async def async_function(self): ...
++async def async_function(self):
++    ...
+ 
+ 
+ @decorated
+-async def async_function(self): ...
++async def async_function(self):
++    ...
+ 
+ 
+ class ClassA:
+-    def f(self): ...
++    def f(self):
++        ...
+ 
+ 
+ class ClassB:
+-    def f(self): ...
++    def f(self):
++        ...
+ 
+ 
+ class ClassC:
+     def f(self):
+ 
+@@ -93,17 +107,20 @@
+         ...  # Comment 2
+         # Comment 3
+ 
+ 
+ class ClassE:
+-    def f(self): ...
++    def f(self):
++        ...
++
+     def f2(self):
+         print(10)
+ 
+ 
+ class ClassF:
+-    def f(self): ...  # Comment 2
++    def f(self):
++        ...  # Comment 2
+ 
+ 
+ class ClassG:
+     def f(self):  # Comment 1
+         ...  # Comment 2
+
+___________________________ test_simple_format[stub] ___________________________
+
+filename = 'stub'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = 'X: int\n\ndef f(): ...\n\nclass D: ...\nclass C: ...\n\nclass B:\n    this_lack_of_newline_should_be_kept: int\n    d...  class A: ...\n        class B: ...\n\n        class C:\n            def l(self): ...\n            def m(self): ...\n'
+actual = 'X: int\n\ndef f(): ...\n\nclass D:\n    ...\n\nclass C:\n    ...\n\nclass B:\n    this_lack_of_newline_should_be_kept...  class A: ...\n        class B: ...\n\n        class C:\n            def l(self): ...\n            def m(self): ...\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -50,45 +50,62 @@
+     NAME
+  ' '
+  'D'
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
++    suite
+       NEWLINE
+  '\n'
+-    /simple_stmt
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /classdef
+   classdef
+     NAME
++ '\n'
+  'class'
+     NAME
+  ' '
+  'C'
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
++    suite
+       NEWLINE
+  '\n'
+-    /simple_stmt
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /classdef
+   classdef
+     NAME
+  '\n'
+  'class'
+@@ -242,27 +259,35 @@
+         NAME
+  ' '
+  'int'
+         COLON
+  ':'
+-        simple_stmt
+-          atom
+-            DOT
+- ' '
+- '.'
+-            DOT
+- '.'
+-            DOT
+- '.'
+-          /atom
+-          NEWLINE
+- '\n'
+-        /simple_stmt
++        suite
++          NEWLINE
++ '\n'
++          INDENT
++ ''
++          simple_stmt
++            atom
++              DOT
++ '        '
++ '.'
++              DOT
++ '.'
++              DOT
++ '.'
++            /atom
++            NEWLINE
++ '\n'
++          /simple_stmt
++          DEDENT
++ ''
++        /suite
+       /funcdef
+       funcdef
+         NAME
+- '    '
++ '\n    '
+  'def'
+         NAME
+  ' '
+  'g'
+         parameters
+@@ -312,26 +337,35 @@
+       RPAR
+  ')'
+     /parameters
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
+- '.'
+-        DOT
+- '.'
+-        DOT
+- '.'
+-      /atom
++    suite
+       NEWLINE
+  '\n'
+-    /simple_stmt
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
++ '.'
++          DOT
++ '.'
++          DOT
++ '.'
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   funcdef
+     NAME
++ '\n'
+  'def'
+     NAME
+  ' '
+  'h'
+     parameters
+
+--- expected
++++ actual
+@@ -1,11 +1,14 @@
+ X: int
+ 
+ def f(): ...
+ 
+-class D: ...
+-class C: ...
++class D:
++    ...
++
++class C:
++    ...
+ 
+ class B:
+     this_lack_of_newline_should_be_kept: int
+     def b(self) -> None: ...
+ 
+@@ -13,14 +16,18 @@
+ 
+ class A:
+     attr: int
+     attr2: str
+ 
+-    def f(self) -> int: ...
++    def f(self) -> int:
++        ...
++
+     def g(self) -> str: ...
+ 
+-def g(): ...
++def g():
++    ...
++
+ def h(): ...
+ 
+ if sys.version_info >= (3, 8):
+     class E:
+         def f(self): ...
+
+_________________ test_simple_format[function_trailing_comma] __________________
+
+filename = 'function_trailing_comma'
+
+    @pytest.mark.filterwarnings("ignore:invalid escape sequence.*:DeprecationWarning")
+    @pytest.mark.parametrize("filename", all_data_cases("cases"))
+    def test_simple_format(filename: str) -> None:
+>       check_file("cases", filename)
+
+tests/test_format.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_format.py:28: in check_file
+    assert_format(
+tests/util.py:109: in assert_format
+    _assert_format_inner(
+tests/util.py:173: in _assert_format_inner
+    _assert_format_equal(expected, actual)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+expected = 'def f(\n    a,\n):\n    d = {\n        "key": "value",\n    }\n    tup = (1,)\n\n\ndef f2(\n    a,\n    b,\n):\n    d...    pass\n\n\nvariable: (  # annotation\n    because\n    # why not\n)\n\nvariable: (\n    because\n    # why not\n)\n'
+actual = 'def f(\n    a,\n):\n    d = {\n        "key": "value",\n    }\n    tup = (1,)\n\n\ndef f2(\n    a,\n    b,\n):\n    d...    pass\n\n\nvariable: (  # annotation\n    because\n    # why not\n)\n\nvariable: (\n    because\n    # why not\n)\n'
+
+    def _assert_format_equal(expected: str, actual: str) -> None:
+        if actual != expected and (conftest.PRINT_FULL_TREE or conftest.PRINT_TREE_DIFF):
+            bdv: DebugVisitor[Any]
+            actual_out: str = ""
+            expected_out: str = ""
+            if conftest.PRINT_FULL_TREE:
+                out("Expected tree:", fg="green")
+            try:
+                exp_node = black.lib2to3_parse(expected)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                expected_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_FULL_TREE:
+                out("Actual tree:", fg="red")
+            try:
+                exp_node = black.lib2to3_parse(actual)
+                bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+                list(bdv.visit(exp_node))
+                actual_out = "\n".join(bdv.list_output)
+            except Exception as ve:
+                err(str(ve))
+            if conftest.PRINT_TREE_DIFF:
+                out("Tree Diff:")
+                out(
+                    diff(expected_out, actual_out, "expected tree", "actual tree")
+                    or "Trees do not differ"
+                )
+    
+        if actual != expected:
+            out(diff(expected, actual, "expected", "actual"))
+    
+>       assert actual == expected
+               ^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/util.py:86: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Tree Diff:
+--- expected tree
++++ actual tree
+@@ -1013,23 +1013,31 @@
+  '\n'
+  ')'
+     /atom
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
+  '.'
+-        DOT
++          DOT
+  '.'
+-        DOT
++          DOT
+  '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   funcdef
+     NAME
+  '\n\n'
+  'def'
+@@ -1056,23 +1064,31 @@
+  '\n    # another\n'
+  ')'
+     /atom
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
+  '.'
+-        DOT
++          DOT
+  '.'
+-        DOT
++          DOT
+  '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   funcdef
+     NAME
+  '\n\n'
+  'def'
+@@ -1113,23 +1129,31 @@
+  '\n'
+  ')'
+     /atom
+     COLON
+  ':'
+-    simple_stmt
+-      atom
+-        DOT
+- ' '
++    suite
++      NEWLINE
++ '\n'
++      INDENT
++ ''
++      simple_stmt
++        atom
++          DOT
++ '    '
+  '.'
+-        DOT
++          DOT
+  '.'
+-        DOT
++          DOT
+  '.'
+-      /atom
+-      NEWLINE
+- '\n'
+-    /simple_stmt
++        /atom
++        NEWLINE
++ '\n'
++      /simple_stmt
++      DEDENT
++ ''
++    /suite
+   /funcdef
+   funcdef
+     NAME
+  '\n\n'
+  'def'
+
+--- expected
++++ actual
+@@ -115,27 +115,30 @@
+ 
+ 
+ def foo() -> (
+     # comment inside parenthesised return type
+     int
+-): ...
++):
++    ...
+ 
+ 
+ def foo() -> (
+     # comment inside parenthesised return type
+     # more
+     int
+     # another
+-): ...
++):
++    ...
+ 
+ 
+ def foo() -> (
+     # comment inside parenthesised new union return type
+     int
+     | str
+     | bytes
+-): ...
++):
++    ...
+ 
+ 
+ def foo() -> (
+     # comment inside plain tuple
+ ):
+
+=========================== short test summary info ============================
+SKIPPED [2] tests/test_no_ipynb.py: Marked with disabled optional tests (no_jupyter)
+FAILED tests/test_black.py::BlackTestCase::test_multi_file_force_pyi - Assert...
+FAILED tests/test_black.py::BlackTestCase::test_pipe_force_pyi - AssertionError
+FAILED tests/test_black.py::BlackTestCase::test_single_file_force_pyi - Asser...
+FAILED tests/test_blackd.py::BlackDTestCase::test_blackd_pyi - AssertionError...
+FAILED tests/test_format.py::test_simple_format[target_version_flag] - Assert...
+FAILED tests/test_format.py::test_simple_format[preview_comments7] - Assertio...
+FAILED tests/test_format.py::test_simple_format[fmtonoff] - AssertionError
+FAILED tests/test_format.py::test_simple_format[pep604_union_types_line_breaks]
+FAILED tests/test_format.py::test_simple_format[ignore_pyi] - AssertionError
+FAILED tests/test_format.py::test_simple_format[python39] - AssertionError
+FAILED tests/test_format.py::test_simple_format[pep_572_remove_parens] - Asse...
+FAILED tests/test_format.py::test_simple_format[dummy_implementations] - Asse...
+FAILED tests/test_format.py::test_simple_format[stub] - AssertionError
+FAILED tests/test_format.py::test_simple_format[function_trailing_comma] - As...
+14 failed, 729 passed, 2 skipped, 31 subtests passed in 22.98s

@@ -1,0 +1,1049 @@
+.............FFF...F.......F.F.............FF..............FF............................................FF........ [ 15%]
+.....................F.F.F...................FF....FFFF............... [ 24%]
+.....................................F.FF......F.................F...... [ 34%]
+....F................................................................... [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 63%]
+........................................................................ [ 73%]
+........................................................................ [ 82%]
+................................................................F...F... [ 92%]
+ss......................................................                 [100%]
+=================================== FAILURES ===================================
+_____________ BlackTestCase.test_assertFormatEqual_print_full_tree _____________
+
+self = <tests.test_black.BlackTestCase testMethod=test_assertFormatEqual_print_full_tree>
+
+    @patch("tests.conftest.PRINT_FULL_TREE", True)
+    @patch("tests.conftest.PRINT_TREE_DIFF", False)
+    @pytest.mark.incompatible_with_mypyc
+    def test_assertFormatEqual_print_full_tree(self) -> None:
+        out_lines = []
+        err_lines = []
+    
+        def out(msg: str, **kwargs: Any) -> None:
+            out_lines.append(msg)
+    
+        def err(msg: str, **kwargs: Any) -> None:
+            err_lines.append(msg)
+    
+        with patch("black.output._out", out), patch("black.output._err", err):
+            with self.assertRaises(AssertionError):
+>               self.assertFormatEqual("j = [1, 2, 3]", "j = [1, 2, 3,]")
+
+tests/test_black.py:1267: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/util.py:192: in assertFormatEqual
+    _assert_format_equal(expected, actual)
+tests/util.py:84: in _assert_format_equal
+    out(diff(expected, actual, "expected", "actual"))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+_____________ BlackTestCase.test_assertFormatEqual_print_tree_diff _____________
+
+self = <tests.test_black.BlackTestCase testMethod=test_assertFormatEqual_print_tree_diff>
+
+    @patch("tests.conftest.PRINT_FULL_TREE", False)
+    @patch("tests.conftest.PRINT_TREE_DIFF", True)
+    @pytest.mark.incompatible_with_mypyc
+    def test_assertFormatEqual_print_tree_diff(self) -> None:
+        out_lines = []
+        err_lines = []
+    
+        def out(msg: str, **kwargs: Any) -> None:
+            out_lines.append(msg)
+    
+        def err(msg: str, **kwargs: Any) -> None:
+            err_lines.append(msg)
+    
+        with patch("black.output._out", out), patch("black.output._err", err):
+            with self.assertRaises(AssertionError):
+>               self.assertFormatEqual("j = [1, 2, 3]\n", "j = [1, 2, 3,]\n")
+
+tests/test_black.py:1289: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/util.py:192: in assertFormatEqual
+    _assert_format_equal(expected, actual)
+tests/util.py:79: in _assert_format_equal
+    diff(expected_out, actual_out, "expected tree", "actual tree")
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+____________________ BlackTestCase.test_bpo_2142_workaround ____________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_bpo_2142_workaround>
+
+    def test_bpo_2142_workaround(self) -> None:
+        # https://bugs.python.org/issue2142
+    
+        source, _ = read_data("miscellaneous", "missing_final_newline")
+        # read_data adds a trailing newline
+        source = source.rstrip()
+        expected, _ = read_data("miscellaneous", "missing_final_newline.diff")
+        tmp_file = Path(black.dump_to_file(source, ensure_final_newline=False))
+        diff_header = re.compile(
+            rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+            r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+        )
+        try:
+            result = BlackRunner().invoke(black.main, ["--diff", str(tmp_file)])
+>           self.assertEqual(result.exit_code, 0)
+E           AssertionError: 123 != 0
+
+tests/test_black.py:2379: AssertionError
+__________________ BlackTestCase.test_check_diff_use_together __________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_check_diff_use_together>
+
+    @event_loop()
+    def test_check_diff_use_together(self) -> None:
+        with cache_dir():
+            # Files which will be reformatted.
+            src1 = get_case_path("miscellaneous", "string_quotes")
+>           self.invokeBlack([str(src1), "--diff", "--check"], exit_code=1)
+
+tests/test_black.py:1333: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tes...is/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/data/miscellaneous/string_quotes.py', '--diff', '--check']
+exit_code = 1, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/empty.toml', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/data/miscellaneous/string_quotes.py', '--diff', '--check']
+E         stdout: ''
+E         stderr: 'Identified `/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring` as project root containing a pyproject.toml.\nFound input source: "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/data/miscellaneous/string_quotes.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1029, in reformat_one\n    if changed is not Changed.CACHED and format_file_in_place(\n                                         ^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\nerror: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/data/miscellaneous/string_quotes.py: name \'difflib\' is not defined\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         exception: 123
+E       assert 123 == 1
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+__________________ BlackTestCase.test_code_option_color_diff ___________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_code_option_color_diff>
+
+    def test_code_option_color_diff(self) -> None:
+        """Test the code option when color and diff are passed."""
+        code = "print('hello world')"
+        formatted = black.format_str(code, mode=DEFAULT_MODE)
+    
+>       result_diff = diff(code, formatted, "STDIN", "STDOUT")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_black.py:2446: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+a_lines = ["print('hello world')"], b_lines = ['print("hello world")\n']
+a_name = 'STDIN', b_name = 'STDOUT', diff_lines = []
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+_____________________ BlackTestCase.test_code_option_diff ______________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_code_option_diff>
+
+    def test_code_option_diff(self) -> None:
+        """Test the code option when diff is passed."""
+        code = "print('hello world')"
+        formatted = black.format_str(code, mode=DEFAULT_MODE)
+>       result_diff = diff(code, formatted, "STDIN", "STDOUT")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_black.py:2430: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+a_lines = ["print('hello world')"], b_lines = ['print("hello world")\n']
+a_name = 'STDIN', b_name = 'STDOUT', diff_lines = []
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+______________________ BlackTestCase.test_expression_diff ______________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_expression_diff>
+
+    def test_expression_diff(self) -> None:
+        source, _ = read_data("cases", "expression.py")
+        expected, _ = read_data("cases", "expression.diff")
+        tmp_file = Path(black.dump_to_file(source))
+        diff_header = re.compile(
+            rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+            r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+        )
+        try:
+            result = BlackRunner().invoke(
+                black.main, ["--diff", str(tmp_file), f"--config={EMPTY_CONFIG}"]
+            )
+>           self.assertEqual(result.exit_code, 0)
+E           AssertionError: 123 != 0
+
+tests/test_black.py:413: AssertionError
+________________ BlackTestCase.test_expression_diff_with_color _________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_expression_diff_with_color>
+
+    def test_expression_diff_with_color(self) -> None:
+        source, _ = read_data("cases", "expression.py")
+        expected, _ = read_data("cases", "expression.diff")
+        tmp_file = Path(black.dump_to_file(source))
+        try:
+            result = BlackRunner().invoke(
+                black.main,
+                ["--diff", "--color", str(tmp_file), f"--config={EMPTY_CONFIG}"],
+            )
+        finally:
+            os.unlink(tmp_file)
+        actual = result.output
+        # We check the contents of the diff in `test_expression_diff`. All
+        # we need to check here is that color codes exist in the result.
+>       self.assertIn("\033[1m", actual)
+E       AssertionError: '\x1b[1m' not found in "error: cannot format /var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/blk_959e3kjz.log: name 'difflib' is not defined\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+
+tests/test_black.py:441: AssertionError
+______ BlackTestCase.test_format_file_in_place_diff_without_stdout_buffer ______
+
+self = <tests.test_black.BlackTestCase testMethod=test_format_file_in_place_diff_without_stdout_buffer>
+
+    def test_format_file_in_place_diff_without_stdout_buffer(self) -> None:
+        for nl in ("\n", "\r\n"):
+            with TemporaryDirectory() as workspace:
+                test_file = Path(workspace) / "test.py"
+                test_file.write_bytes(f"x = ( 1 ){nl}".encode())
+                output = io.StringIO(newline="")
+                with patch("sys.stdout", output):
+>                   changed = black.format_file_in_place(
+                        test_file,
+                        fast=True,
+                        mode=DEFAULT_MODE,
+                        write_back=black.WriteBack.DIFF,
+                    )
+
+tests/test_black.py:1668: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/black/__init__.py:1109: in format_file_in_place
+    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+a_lines = ['x = ( 1 )\n'], b_lines = ['x = 1\n']
+a_name = '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp_515g01z/test.py\t2026-10-30 15:27:14.661307+00:00'
+b_name = '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp_515g01z/test.py\t2026-10-30 15:27:14.661647+00:00'
+diff_lines = []
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+___________ BlackTestCase.test_format_stdin_to_stdout_without_buffer ___________
+
+self = <tests.test_black.BlackTestCase testMethod=test_format_stdin_to_stdout_without_buffer>
+
+    def test_format_stdin_to_stdout_without_buffer(self) -> None:
+        # Text streams aren't required to expose `.buffer` (e.g. ipykernel's
+        # OutStream in Jupyter), see #2516.
+        src = "print ( 'hello' )"
+        for write_back, expected in (
+            (black.WriteBack.YES, 'print("hello")\n'),
+            (black.WriteBack.CHECK, ""),
+            (black.WriteBack.NO, ""),
+        ):
+            output = io.StringIO()
+            assert not hasattr(output, "buffer")
+            with patch("sys.stdout", output):
+                changed = black.format_stdin_to_stdout(
+                    fast=True, content=src, write_back=write_back, mode=DEFAULT_MODE
+                )
+            self.assertTrue(changed)
+            self.assertEqual(output.getvalue(), expected)
+            self.assertFalse(output.closed)
+    
+        for write_back in (black.WriteBack.DIFF, black.WriteBack.COLOR_DIFF):
+            output = io.StringIO()
+            with patch("sys.stdout", output):
+>               black.format_stdin_to_stdout(
+                    fast=True, content=src, write_back=write_back, mode=DEFAULT_MODE
+                )
+
+tests/test_black.py:1639: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/black/__init__.py:1178: in format_stdin_to_stdout
+    d = diff(src, dst, src_name, dst_name)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+a_lines = ["print ( 'hello' )"], b_lines = ['print("hello")\n']
+a_name = 'STDIN\t2026-10-30 15:27:14.704743+00:00'
+b_name = 'STDOUT\t2026-10-30 15:27:14.705186+00:00', diff_lines = []
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+________________________ BlackTestCase.test_piping_diff ________________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_piping_diff>
+
+    def test_piping_diff(self) -> None:
+        diff_header = re.compile(
+            r"(STDIN|STDOUT)\t\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\.\d\d\d\d\d\d"
+            r"\+\d\d:\d\d"
+        )
+        source, _ = read_data("cases", "expression.py")
+        expected, _ = read_data("cases", "expression.diff")
+        args = [
+            "-",
+            "--fast",
+            f"--line-length={black.DEFAULT_LINE_LENGTH}",
+            "--diff",
+            f"--config={EMPTY_CONFIG}",
+        ]
+        result = BlackRunner().invoke(
+            black.main, args, input=BytesIO(source.encode("utf-8"))
+        )
+>       self.assertEqual(result.exit_code, 0)
+E       AssertionError: 123 != 0
+
+tests/test_black.py:296: AssertionError
+__________________ BlackTestCase.test_piping_diff_with_color ___________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_piping_diff_with_color>
+
+    def test_piping_diff_with_color(self) -> None:
+        source, _ = read_data("cases", "expression.py")
+        args = [
+            "-",
+            "--fast",
+            f"--line-length={black.DEFAULT_LINE_LENGTH}",
+            "--diff",
+            "--color",
+            f"--config={EMPTY_CONFIG}",
+        ]
+        result = BlackRunner().invoke(
+            black.main, args, input=BytesIO(source.encode("utf-8"))
+        )
+        actual = result.output
+        # Again, the contents are checked in a different test, so only look for colors.
+>       self.assertIn("\033[1m", actual)
+E       AssertionError: '\x1b[1m' not found in "error: cannot format -: name 'difflib' is not defined\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+
+tests/test_black.py:316: AssertionError
+_________________ BlackTestCase.test_skip_magic_trailing_comma _________________
+
+self = <tests.test_black.BlackTestCase testMethod=test_skip_magic_trailing_comma>
+
+    def test_skip_magic_trailing_comma(self) -> None:
+        source, _ = read_data("cases", "expression")
+        expected, _ = read_data(
+            "miscellaneous", "expression_skip_magic_trailing_comma.diff"
+        )
+        tmp_file = Path(black.dump_to_file(source))
+        diff_header = re.compile(
+            rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+            r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+        )
+        try:
+            result = BlackRunner().invoke(
+                black.main, ["-C", "--diff", str(tmp_file), f"--config={EMPTY_CONFIG}"]
+            )
+>           self.assertEqual(result.exit_code, 0)
+E           AssertionError: 123 != 0
+
+tests/test_black.py:564: AssertionError
+_____________ BlackTestCase.test_skip_source_first_line_via_stdin ______________
+
+self = <tests.test_black.BlackTestCase testMethod=test_skip_source_first_line_via_stdin>
+
+    def test_skip_source_first_line_via_stdin(self) -> None:
+        for nl in ["\n", "\r\n"]:
+            code = nl.join(["This is not valid Python syntax", "i = [1,2,3]", ""])
+            expected = nl.join(["This is not valid Python syntax", "i = [1, 2, 3]", ""])
+            result = BlackRunner().invoke(
+                black.main,
+                ["-", "-x", f"--config={EMPTY_CONFIG}"],
+                input=BytesIO(code.encode()),
+            )
+            self.assertEqual(result.exit_code, 0)
+            self.assertEqual(result.stdout_bytes, expected.encode())
+    
+            result = BlackRunner().invoke(
+                black.main,
+                ["-", "-x", "--diff", f"--config={EMPTY_CONFIG}"],
+                input=BytesIO(code.encode()),
+            )
+>           self.assertEqual(result.exit_code, 0)
+E           AssertionError: 123 != 0
+
+tests/test_black.py:543: AssertionError
+_________ BlackTestCase.test_skip_source_first_line_with_crlf_newlines _________
+
+self = <tests.test_black.BlackTestCase testMethod=test_skip_source_first_line_with_crlf_newlines>
+
+    def test_skip_source_first_line_with_crlf_newlines(self) -> None:
+        code = b"Header will be skipped\r\ni = [1,2,3]\r\nj = [1,2,3]\r\n"
+        expected = b"Header will be skipped\r\ni = [1, 2, 3]\r\nj = [1, 2, 3]\r\n"
+        mode = replace(DEFAULT_MODE, skip_source_first_line=True)
+        with TemporaryDirectory() as workspace:
+            test_file = Path(workspace) / "skip_header.py"
+            test_file.write_bytes(code)
+            ff(test_file, mode=mode, write_back=black.WriteBack.YES)
+            self.assertEqual(test_file.read_bytes(), expected)
+    
+            test_file.write_bytes(code)
+            output = io.StringIO(newline="")
+            with patch("sys.stdout", output):
+>               ff(test_file, mode=mode, write_back=black.WriteBack.DIFF)
+
+tests/test_black.py:521: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/black/__init__.py:1109: in format_file_in_place
+    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+a_lines = ['Header will be skipped\n', 'i = [1,2,3]\n', 'j = [1,2,3]\n']
+b_lines = ['Header will be skipped\n', 'i = [1, 2, 3]\n', 'j = [1, 2, 3]\n']
+a_name = '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpi3bu29zi/skip_header.py\t2026-10-30 15:27:16.526362+00:00'
+b_name = '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpi3bu29zi/skip_header.py\t2026-10-30 15:27:16.528384+00:00'
+diff_lines = []
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+___________ TestCaching.test_no_cache_when_writeback_diff[no-color] ____________
+
+self = <tests.test_black.TestCaching object at 0x107cf8440>, color = False
+
+    @pytest.mark.incompatible_with_mypyc
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    def test_no_cache_when_writeback_diff(self, color: bool) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            src.write_text("print('hello')", encoding="utf-8")
+            with (
+                patch.object(black.Cache, "read") as read_cache,
+                patch.object(black.Cache, "write") as write_cache,
+            ):
+                cmd = [str(src), "--diff"]
+                if color:
+                    cmd.append("--color")
+>               invokeBlack(cmd)
+
+tests/test_black.py:3214: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp9tc7cx6d/test.py', '--diff']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp9tc7cx6d/test.py', '--diff']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp9tc7cx6d/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1029, in reformat_one\n    if changed is not Changed.CACHED and format_file_in_place(\n                                         ^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp9tc7cx6d/test.py: name \'difflib\' is not defined\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+__________ TestCaching.test_no_cache_when_writeback_diff[with-color] ___________
+
+self = <tests.test_black.TestCaching object at 0x107cf8650>, color = True
+
+    @pytest.mark.incompatible_with_mypyc
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    def test_no_cache_when_writeback_diff(self, color: bool) -> None:
+        mode = DEFAULT_MODE
+        with cache_dir() as workspace:
+            src = (workspace / "test.py").resolve()
+            src.write_text("print('hello')", encoding="utf-8")
+            with (
+                patch.object(black.Cache, "read") as read_cache,
+                patch.object(black.Cache, "write") as write_cache,
+            ):
+                cmd = [str(src), "--diff"]
+                if color:
+                    cmd.append("--color")
+>               invokeBlack(cmd)
+
+tests/test_black.py:3214: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpkqrb100v/test.py', '--diff', '--color']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpkqrb100v/test.py', '--diff', '--color']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpkqrb100v/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1029, in reformat_one\n    if changed is not Changed.CACHED and format_file_in_place(\n                                         ^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpkqrb100v/test.py: name \'difflib\' is not defined\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+_____ TestCaching.test_cache_multiple_files_when_writeback_diff[no-color] ______
+
+self = <tests.test_black.TestCaching object at 0x107ced970>, color = False
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    @event_loop()
+    def test_cache_multiple_files_when_writeback_diff(self, color: bool) -> None:
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch("concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor),
+        ):
+            one = (workspace / "one.py").resolve()
+            one.write_text('print("hello")\n', encoding="utf-8")
+            two = (workspace / "two.py").resolve()
+            two.write_text("print('world')", encoding="utf-8")
+            cache = black.Cache.read(mode, workspace)
+            cache.write([one])
+            cmd = ["--config", str(THIS_DIR / "empty.toml"), "--diff", str(workspace)]
+            if color:
+                cmd.append("--color")
+            result = BlackRunner().invoke(black.main, cmd)
+>           assert result.exit_code == 0
+E           assert 123 == 0
+E            +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:3269: AssertionError
+____ TestCaching.test_cache_multiple_files_when_writeback_diff[with-color] _____
+
+self = <tests.test_black.TestCaching object at 0x107ceeba0>, color = True
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    @event_loop()
+    def test_cache_multiple_files_when_writeback_diff(self, color: bool) -> None:
+        mode = DEFAULT_MODE
+        with (
+            cache_dir() as workspace,
+            patch("concurrent.futures.ProcessPoolExecutor", new=ThreadPoolExecutor),
+        ):
+            one = (workspace / "one.py").resolve()
+            one.write_text('print("hello")\n', encoding="utf-8")
+            two = (workspace / "two.py").resolve()
+            two.write_text("print('world')", encoding="utf-8")
+            cache = black.Cache.read(mode, workspace)
+            cache.write([one])
+            cmd = ["--config", str(THIS_DIR / "empty.toml"), "--diff", str(workspace)]
+            if color:
+                cmd.append("--color")
+            result = BlackRunner().invoke(black.main, cmd)
+>           assert result.exit_code == 0
+E           assert 123 == 0
+E            +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:3269: AssertionError
+________ TestCaching.test_output_locking_when_writeback_diff[no-color] _________
+
+self = <tests.test_black.TestCaching object at 0x107cecce0>, color = False
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    @event_loop()
+    def test_output_locking_when_writeback_diff(self, color: bool) -> None:
+        with cache_dir() as workspace:
+            for tag in range(0, 4):
+                src = (workspace / f"test{tag}.py").resolve()
+                src.write_text("print('hello')", encoding="utf-8")
+            with patch(
+                "black.concurrency.Manager", wraps=multiprocessing.Manager
+            ) as mgr:
+                cmd = ["--diff", str(workspace)]
+                if color:
+                    cmd.append("--color")
+>               invokeBlack(cmd, exit_code=0)
+
+tests/test_black.py:3289: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/empty.toml', '--diff', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpp3veeeis']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/empty.toml', '--diff', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpp3veeeis']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source directory: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpp3veeeis"\nconcurrent.futures.process._RemoteTraceback: \n"""\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker\n    r = call_item.fn(*call_item.args, **call_item.kwargs)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\n"""\n\nThe above exception was the direct cause of the following exception:\n\nNameError: name \'difflib\' is not defined\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpp3veeeis/test1.py: name \'difflib\' is not defined\nconcurrent.futures.process._RemoteTraceback: \n"""\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker\n    r = call_item.fn(*call_item.args, **call_item.kwargs)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\n"""\n\nThe above exception was the direct cause of the following exception:\n\nNameError: name \'difflib\' is not defined\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpp3veeeis/test0.py: name \'difflib\' is not defined\nconcurrent.futures.process._RemoteTraceback: \n"""\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker\n    r = call_item.fn(*call_item.args, **call_item.kwargs)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\n"""\n\nThe above exception was the direct cause of the following exception:\n\nNameError: name \'difflib\' is not defined\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpp3veeeis/test2.py: name \'difflib\' is not defined\nconcurrent.futures.process._RemoteTraceback: \n"""\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker\n    r = call_item.fn(*call_item.args, **call_item.kwargs)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\n"""\n\nThe above exception was the direct cause of the following exception:\n\nNameError: name \'difflib\' is not defined\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpp3veeeis/test3.py: name \'difflib\' is not defined\n\nOh no! 💥 💔 💥\n4 files would fail to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+_______ TestCaching.test_output_locking_when_writeback_diff[with-color] ________
+
+self = <tests.test_black.TestCaching object at 0x107cecaa0>, color = True
+
+    @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
+    @event_loop()
+    def test_output_locking_when_writeback_diff(self, color: bool) -> None:
+        with cache_dir() as workspace:
+            for tag in range(0, 4):
+                src = (workspace / f"test{tag}.py").resolve()
+                src.write_text("print('hello')", encoding="utf-8")
+            with patch(
+                "black.concurrency.Manager", wraps=multiprocessing.Manager
+            ) as mgr:
+                cmd = ["--diff", str(workspace)]
+                if color:
+                    cmd.append("--color")
+>               invokeBlack(cmd, exit_code=0)
+
+tests/test_black.py:3289: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/empty.toml', '--diff', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp4xvfdpqz', '--color']
+exit_code = 0, ignore_config = True
+
+    def invokeBlack(
+        args: list[str], exit_code: int = 0, ignore_config: bool = True
+    ) -> None:
+        runner = BlackRunner()
+        if ignore_config:
+            args = ["--verbose", "--config", str(THIS_DIR / "empty.toml"), *args]
+        result = runner.invoke(black.main, args, catch_exceptions=False)
+        assert result.stdout_bytes is not None
+        assert result.stderr_bytes is not None
+        msg = (
+            f"Failed with args: {args}\n"
+            f"stdout: {result.stdout_bytes.decode()!r}\n"
+            f"stderr: {result.stderr_bytes.decode()!r}\n"
+            f"exception: {result.exception}"
+        )
+>       assert result.exit_code == exit_code, msg
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/empty.toml', '--diff', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp4xvfdpqz', '--color']
+E         stdout: ''
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source directory: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp4xvfdpqz"\nconcurrent.futures.process._RemoteTraceback: \n"""\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker\n    r = call_item.fn(*call_item.args, **call_item.kwargs)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\n"""\n\nThe above exception was the direct cause of the following exception:\n\nNameError: name \'difflib\' is not defined\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp4xvfdpqz/test1.py: name \'difflib\' is not defined\nconcurrent.futures.process._RemoteTraceback: \n"""\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker\n    r = call_item.fn(*call_item.args, **call_item.kwargs)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\n"""\n\nThe above exception was the direct cause of the following exception:\n\nNameError: name \'difflib\' is not defined\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp4xvfdpqz/test0.py: name \'difflib\' is not defined\nconcurrent.futures.process._RemoteTraceback: \n"""\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker\n    r = call_item.fn(*call_item.args, **call_item.kwargs)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\n"""\n\nThe above exception was the direct cause of the following exception:\n\nNameError: name \'difflib\' is not defined\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp4xvfdpqz/test2.py: name \'difflib\' is not defined\nconcurrent.futures.process._RemoteTraceback: \n"""\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker\n    r = call_item.fn(*call_item.args, **call_item.kwargs)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/__init__.py", line 1109, in format_file_in_place\n    diff_contents = diff(src_contents, dst_contents, src_name, dst_name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff\n    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines\n    for line in difflib.unified_diff(\n                ^^^^^^^\nNameError: name \'difflib\' is not defined. Did you forget to import \'difflib\'\n"""\n\nThe above exception was the direct cause of the following exception:\n\nNameError: name \'difflib\' is not defined\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp4xvfdpqz/test3.py: name \'difflib\' is not defined\n\nOh no! 💥 💔 💥\n4 files would fail to reformat.\n'
+E         exception: 123
+E       assert 123 == 0
+E        +  where 123 = <Result SystemExit(123)>.exit_code
+
+tests/test_black.py:137: AssertionError
+__________________ TestASTSafety.test_assert_equivalent_basic __________________
+
+self = <tests.test_black.TestASTSafety testMethod=test_assert_equivalent_basic>
+
+    def test_assert_equivalent_basic(self) -> None:
+>       self.check_ast_equivalence("{}", "None", should_fail=True)
+
+tests/test_black.py:4292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_black.py:4287: in check_ast_equivalence
+    black.assert_equivalent(source, dest)
+src/black/__init__.py:1907: in assert_equivalent
+    log = dump_to_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+_________________ TestASTSafety.test_assert_equivalent_fstring _________________
+
+self = <tests.test_black.TestASTSafety testMethod=test_assert_equivalent_fstring>
+
+    def test_assert_equivalent_fstring(self) -> None:
+        major, minor = sys.version_info[:2]
+        if major < 3 or (major == 3 and minor < 12):
+            pytest.skip("relies on 3.12+ syntax")
+        # https://github.com/psf/black/issues/4268
+>       self.check_ast_equivalence(
+            """print(f"{"|".join([a,b,c])}")""",
+            """print(f"{" | ".join([a,b,c])}")""",
+            should_fail=True,
+        )
+
+tests/test_black.py:4375: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_black.py:4287: in check_ast_equivalence
+    black.assert_equivalent(source, dest)
+src/black/__init__.py:1907: in assert_equivalent
+    log = dump_to_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+_________________ TestASTSafety.test_assert_equivalent_strings _________________
+
+self = <tests.test_black.TestASTSafety testMethod=test_assert_equivalent_strings>
+
+    def test_assert_equivalent_strings(self) -> None:
+>       self.check_ast_equivalence('x = "x"', 'x = " x "', should_fail=True)
+
+tests/test_black.py:4300: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_black.py:4287: in check_ast_equivalence
+    black.assert_equivalent(source, dest)
+src/black/__init__.py:1907: in assert_equivalent
+    log = dump_to_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/black/output.py:83: in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
+>       for line in difflib.unified_diff(
+                    ^^^^^^^
+            a_lines, b_lines, fromfile=a_name, tofile=b_name, n=5
+        ):
+E       NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+
+src/black/output.py:87: NameError
+_______________________ BlackDTestCase.test_blackd_diff ________________________
+
+self = <tests.test_blackd.BlackDTestCase testMethod=test_blackd_diff>
+
+    async def test_blackd_diff(self) -> None:
+        diff_header = re.compile(
+            r"(In|Out)\t\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+        )
+    
+        source, _ = read_data("miscellaneous", "blackd_diff")
+        expected, _ = read_data("miscellaneous", "blackd_diff.diff")
+    
+        response = await self.client.post(
+            "/", data=source, headers={blackd.DIFF_HEADER: "true"}
+        )
+>       self.assertEqual(response.status, 200)
+E       AssertionError: 500 != 200
+
+tests/test_blackd.py:163: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    root:__init__.py:214 Exception during handling a request
+concurrent.futures.process._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker
+    r = call_item.fn(*call_item.args, **call_item.kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines
+    for line in difflib.unified_diff(
+                ^^^^^^^
+NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/blackd/__init__.py", line 188, in handle
+    formatted_str = await format_code(
+                    ^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/blackd/__init__.py", line 246, in format_code
+    return await loop.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'difflib' is not defined
+_________ BlackDTestCase.test_blackd_skip_first_source_line_with_diff __________
+
+self = <tests.test_blackd.BlackDTestCase testMethod=test_blackd_skip_first_source_line_with_diff>
+
+    async def test_blackd_skip_first_source_line_with_diff(self) -> None:
+        source = b"#!/usr/bin/env python\ni = [1,2,3]\n"
+        response = await self.client.post(
+            "/",
+            data=source,
+            headers={
+                blackd.SKIP_SOURCE_FIRST_LINE: "true",
+                blackd.DIFF_HEADER: "true",
+            },
+        )
+>       self.assertEqual(response.status, 200)
+E       AssertionError: 500 != 200
+
+tests/test_blackd.py:243: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    root:__init__.py:214 Exception during handling a request
+concurrent.futures.process._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker
+    r = call_item.fn(*call_item.args, **call_item.kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines
+    for line in difflib.unified_diff(
+                ^^^^^^^
+NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/blackd/__init__.py", line 188, in handle
+    formatted_str = await format_code(
+                    ^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/blackd/__init__.py", line 246, in format_code
+    return await loop.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'difflib' is not defined
+________________________ BlackDClientTestCase.test_diff ________________________
+
+self = <tests.test_blackd.BlackDClientTestCase testMethod=test_diff>
+
+    async def test_diff(self) -> None:
+        diff_header = re.compile(
+            r"(In|Out)\t\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+        )
+    
+        client = blackd.client.BlackDClient(self.client.make_url("/"), diff=True)
+        source, _ = read_data("miscellaneous", "blackd_diff")
+        expected, _ = read_data("miscellaneous", "blackd_diff.diff")
+    
+>       diff = await client.format_code(source)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_blackd.py:522: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <blackd.client.BlackDClient object at 0x10d5e2a80>
+unformatted_code = 'def abc ():\n    return ["hello", "world",\n            "!"]\n\nprint(   "Incorrect formatting"    \n)\n'
+
+    async def format_code(self, unformatted_code: str) -> str:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                self.url, headers=self.headers, data=unformatted_code.encode("utf-8")
+            ) as response:
+                if response.status == 204:
+                    # Input is already well-formatted
+                    return unformatted_code
+                elif response.status == 200:
+                    # Formatting was needed
+                    return await response.text()
+                elif response.status == 400:
+                    # Input contains a syntax error
+                    error_message = await response.text()
+                    raise black.InvalidInput(error_message)
+                elif response.status == 500:
+                    # Other kind of error while formatting
+                    error_message = await response.text()
+>                   raise RuntimeError(f"Error while formatting: {error_message}")
+E                   RuntimeError: Error while formatting: name 'difflib' is not defined
+
+src/blackd/client.py:87: RuntimeError
+------------------------------ Captured log call -------------------------------
+ERROR    root:__init__.py:214 Exception during handling a request
+concurrent.futures.process._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "/Users/estebangarrido10/.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker
+    r = call_item.fn(*call_item.args, **call_item.kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 83, in diff
+    _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines)
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/black/output.py", line 87, in _append_diff_lines
+    for line in difflib.unified_diff(
+                ^^^^^^^
+NameError: name 'difflib' is not defined. Did you forget to import 'difflib'
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/blackd/__init__.py", line 188, in handle
+    formatted_str = await format_code(
+                    ^^^^^^^^^^^^^^^^^^
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/src/blackd/__init__.py", line 246, in format_code
+    return await loop.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'difflib' is not defined
+_________________________ test_ipynb_diff_with_change __________________________
+
+    def test_ipynb_diff_with_change() -> None:
+        result = runner.invoke(
+            main,
+            [
+                str(get_case_path("jupyter", "notebook_trailing_newline.ipynb")),
+                "--diff",
+                f"--config={EMPTY_CONFIG}",
+            ],
+        )
+        expected = "@@ -1,3 +1,3 @@\n %%time\n \n-print('foo')\n+print(\"foo\")\n"
+>       assert expected in result.output
+E       assert '@@ -1,3 +1,3 @@\n %%time\n \n-print(\'foo\')\n+print("foo")\n' in "error: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/da...pyter/notebook_trailing_newline.ipynb: name 'difflib' is not defined\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+E        +  where "error: cannot format /Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/10b_extract_bucle_sin_fstring/tests/da...pyter/notebook_trailing_newline.ipynb: name 'difflib' is not defined\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n" = <Result SystemExit(123)>.output
+
+tests/test_ipynb.py:534: AssertionError
+_______________________________ test_ipynb_flag ________________________________
+
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-125/test_ipynb_flag0')
+
+    def test_ipynb_flag(tmp_path: pathlib.Path) -> None:
+        nb = get_case_path("jupyter", "notebook_trailing_newline.ipynb")
+        tmp_nb = tmp_path / "notebook.a_file_extension_which_is_definitely_not_ipynb"
+        tmp_nb.write_bytes(nb.read_bytes())
+        result = runner.invoke(
+            main,
+            [
+                str(tmp_nb),
+                "--diff",
+                "--ipynb",
+                f"--config={EMPTY_CONFIG}",
+            ],
+        )
+        expected = "@@ -1,3 +1,3 @@\n %%time\n \n-print('foo')\n+print(\"foo\")\n"
+>       assert expected in result.output
+E       assert '@@ -1,3 +1,3 @@\n %%time\n \n-print(\'foo\')\n+print("foo")\n' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-125/t...tension_which_is_definitely_not_ipynb: name 'difflib' is not defined\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-125/t...tension_which_is_definitely_not_ipynb: name 'difflib' is not defined\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n" = <Result SystemExit(123)>.output
+
+tests/test_ipynb.py:606: AssertionError
+=========================== short test summary info ============================
+SKIPPED [2] tests/test_no_ipynb.py: Marked with disabled optional tests (no_jupyter)
+FAILED tests/test_black.py::BlackTestCase::test_assertFormatEqual_print_full_tree
+FAILED tests/test_black.py::BlackTestCase::test_assertFormatEqual_print_tree_diff
+FAILED tests/test_black.py::BlackTestCase::test_bpo_2142_workaround - Asserti...
+FAILED tests/test_black.py::BlackTestCase::test_check_diff_use_together - Ass...
+FAILED tests/test_black.py::BlackTestCase::test_code_option_color_diff - Name...
+FAILED tests/test_black.py::BlackTestCase::test_code_option_diff - NameError:...
+FAILED tests/test_black.py::BlackTestCase::test_expression_diff - AssertionEr...
+FAILED tests/test_black.py::BlackTestCase::test_expression_diff_with_color - ...
+FAILED tests/test_black.py::BlackTestCase::test_format_file_in_place_diff_without_stdout_buffer
+FAILED tests/test_black.py::BlackTestCase::test_format_stdin_to_stdout_without_buffer
+FAILED tests/test_black.py::BlackTestCase::test_piping_diff - AssertionError:...
+FAILED tests/test_black.py::BlackTestCase::test_piping_diff_with_color - Asse...
+FAILED tests/test_black.py::BlackTestCase::test_skip_magic_trailing_comma - A...
+FAILED tests/test_black.py::BlackTestCase::test_skip_source_first_line_via_stdin
+FAILED tests/test_black.py::BlackTestCase::test_skip_source_first_line_with_crlf_newlines
+FAILED tests/test_black.py::TestCaching::test_no_cache_when_writeback_diff[no-color]
+FAILED tests/test_black.py::TestCaching::test_no_cache_when_writeback_diff[with-color]
+FAILED tests/test_black.py::TestCaching::test_cache_multiple_files_when_writeback_diff[no-color]
+FAILED tests/test_black.py::TestCaching::test_cache_multiple_files_when_writeback_diff[with-color]
+FAILED tests/test_black.py::TestCaching::test_output_locking_when_writeback_diff[no-color]
+FAILED tests/test_black.py::TestCaching::test_output_locking_when_writeback_diff[with-color]
+FAILED tests/test_black.py::TestASTSafety::test_assert_equivalent_basic - Nam...
+FAILED tests/test_black.py::TestASTSafety::test_assert_equivalent_fstring - N...
+FAILED tests/test_black.py::TestASTSafety::test_assert_equivalent_strings - N...
+FAILED tests/test_blackd.py::BlackDTestCase::test_blackd_diff - AssertionErro...
+FAILED tests/test_blackd.py::BlackDTestCase::test_blackd_skip_first_source_line_with_diff
+FAILED tests/test_blackd.py::BlackDClientTestCase::test_diff - RuntimeError: ...
+FAILED tests/test_ipynb.py::test_ipynb_diff_with_change - assert '@@ -1,3 +1,...
+FAILED tests/test_ipynb.py::test_ipynb_flag - assert '@@ -1,3 +1,3 @@\n %%tim...
+29 failed, 714 passed, 2 skipped, 31 subtests passed in 24.48s

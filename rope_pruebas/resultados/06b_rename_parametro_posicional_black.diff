@@ -1,0 +1,17 @@
+--- src/black/__init__.py	2026-10-30 15:25:51.568014+00:00
++++ src/black/__init__.py	2026-10-30 15:33:42.142027+00:00
+@@ -1273,13 +1273,11 @@
+     if source == dst_contents:
+         raise NothingChanged
+ 
+     if not fast and not mode.is_ipynb:
+         # Jupyter notebooks will already have been checked above.
+-        check_stability_and_equivalence(
+-            source, dst_contents, mode=mode, lines=lines
+-        )
++        check_stability_and_equivalence(source, dst_contents, mode=mode, lines=lines)
+     return dst_contents
+ 
+ 
+ def format_cell(src: str, *, fast: bool, mode: Mode) -> str:
+     """Format code in given cell of Jupyter notebook.
