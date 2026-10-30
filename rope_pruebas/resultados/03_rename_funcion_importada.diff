@@ -1,0 +1,87 @@
+Renaming <parse_line_ranges> to <parse_line_range_specs> - today 10:15:26 :
+
+
+--- a/src/black/__init__.py
++++ b/src/black/__init__.py
+@@ -77,7 +77,7 @@
+ from black.ranges import (
+     adjusted_lines,
+     convert_unchanged_lines,
+-    parse_line_ranges,
++    parse_line_range_specs,
+     sanitized_lines,
+ )
+ from black.report import Changed, NothingChanged, Report
+@@ -751,7 +751,7 @@
+             ctx.exit(1)
+ 
+         try:
+-            lines = parse_line_ranges(line_ranges)
++            lines = parse_line_range_specs(line_ranges)
+         except ValueError as e:
+             err(str(e))
+             ctx.exit(1)
+
+--- a/tests/test_ranges.py
++++ b/tests/test_ranges.py
+@@ -2,7 +2,7 @@
+ 
+ import pytest
+ 
+-from black.ranges import adjusted_lines, parse_line_ranges, sanitized_lines
++from black.ranges import adjusted_lines, parse_line_range_specs, sanitized_lines
+ 
+ 
+ @pytest.mark.parametrize(
+@@ -16,7 +16,7 @@
+ def test_parse_line_ranges_valid(
+     lines_str: list[str], expected: list[tuple[int, int]]
+ ) -> None:
+-    assert parse_line_ranges(lines_str) == expected
++    assert parse_line_range_specs(lines_str) == expected
+ 
+ 
+ @pytest.mark.parametrize(
+@@ -30,7 +30,7 @@
+ )
+ def test_parse_line_ranges_invalid(lines_str: list[str]) -> None:
+     with pytest.raises(ValueError, match="Incorrect --line-ranges"):
+-        parse_line_ranges(lines_str)
++        parse_line_range_specs(lines_str)
+ 
+ 
+ @pytest.mark.parametrize(
+
+--- a/tests/util.py
++++ b/tests/util.py
+@@ -16,7 +16,7 @@
+ from black.debug import DebugVisitor
+ from black.mode import TargetVersion
+ from black.output import diff, err, out
+-from black.ranges import parse_line_ranges
++from black.ranges import parse_line_range_specs
+ 
+ from . import conftest
+ 
+@@ -291,7 +291,7 @@
+         unstable=args.unstable,
+     )
+     if args.line_ranges:
+-        lines = parse_line_ranges(args.line_ranges)
++        lines = parse_line_range_specs(args.line_ranges)
+     else:
+         lines = []
+     return TestCaseArgs(
+
+--- a/src/black/ranges.py
++++ b/src/black/ranges.py
+@@ -19,7 +19,7 @@
+ from blib2to3.pgen2.token import ASYNC, NEWLINE
+ 
+ 
+-def parse_line_ranges(line_ranges: Sequence[str]) -> list[tuple[int, int]]:
++def parse_line_range_specs(line_ranges: Sequence[str]) -> list[tuple[int, int]]:
+     lines: list[tuple[int, int]] = []
+     for lines_str in line_ranges:
+         parts = lines_str.split("-")
+

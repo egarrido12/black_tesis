@@ -1,0 +1,998 @@
+# Análisis estático con Rope 1.15.0
+
+## Configuración del proyecto Rope
+
+Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según las opciones con que se abre el proyecto:
+
+| Opciones de `Project(...)` | Carpetas de código detectadas | `import black` se resuelve en | Resultado |
+|---|---|---|---|
+| `(por defecto)` | `.` | el repositorio ORIGINAL (`/Users/estebangarrido10/black_tesis/src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/cases/preview_type_param_defaults_string_split.py> line <2>: expected '(' |
+| `source_folders=['src']` | `src`, `.` | la copia (`src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/cases/preview_type_param_defaults_string_split.py> line <2>: expected '(' |
+| `ignore_syntax_errors=True` | `.` | el repositorio ORIGINAL (`/Users/estebangarrido10/black_tesis/src/black`) | 1 ocurrencias en 1 archivos |
+| `ignore_syntax_errors=True, source_folders=['src']` | `src`, `.` | la copia (`src/black`) | 40 ocurrencias en 5 archivos |
+
+## find_errors (rope.contrib.finderrors)
+
+| Módulo | Errores reportados |
+|---|---|
+| `src/black/__init__.py` | 181 |
+| `src/black/__main__.py` | 0 |
+| `src/black/_width_table.py` | 0 |
+| `src/black/brackets.py` | 25 |
+| `src/black/cache.py` | 8 |
+| `src/black/comments.py` | 46 |
+| `src/black/concurrency.py` | 4 |
+| `src/black/const.py` | 0 |
+| `src/black/debug.py` | 1 |
+| `src/black/files.py` | 21 |
+| `src/black/handle_ipynb_magics.py` | 5 |
+| `src/black/linegen.py` | 217 |
+| `src/black/lines.py` | 67 |
+| `src/black/mode.py` | 3 |
+| `src/black/nodes.py` | 156 |
+| `src/black/numerics.py` | 0 |
+| `src/black/output.py` | 9 |
+| `src/black/parsing.py` | 7 |
+| `src/black/ranges.py` | 42 |
+| `src/black/report.py` | 0 |
+| `src/black/rusty.py` | 0 |
+| `src/black/schema.py` | 0 |
+| `src/black/strings.py` | 14 |
+| `src/black/trans.py` | 46 |
+
+- `src/black/__init__.py:88` — Unresolved variable __file__
+- `src/black/__init__.py:107` — Unresolved variable check
+- `src/black/__init__.py:110` — Unresolved variable color
+- `src/black/__init__.py:150` — Defined later k
+- `src/black/__init__.py:150` — Defined later v
+- `src/black/__init__.py:150` — Defined later v
+- `src/black/__init__.py:150` — Defined later v
+- `src/black/__init__.py:199` — Defined later param
+- `src/black/__init__.py:200` — Defined later key
+- `src/black/__init__.py:200` — Defined later key
+- `src/black/__init__.py:217` — Unresolved variable val
+- `src/black/__init__.py:231` — Defined later tv
+- `src/black/__init__.py:236` — Unresolved variable tv
+- `src/black/__init__.py:251` — Unresolved variable val
+- `src/black/__init__.py:610` — Unresolved attribute get_usage
+- `src/black/__init__.py:615` — Unresolved attribute get_usage
+- `src/black/__init__.py:621` — Unresolved attribute get_usage
+- `src/black/__init__.py:294` — Unresolved variable v
+- `src/black/__init__.py:367` — Unresolved variable v
+- `src/black/__init__.py:857` — Unresolved variable root
+- `src/black/__init__.py:857` — Unresolved variable root
+- `src/black/__init__.py:858` — Unresolved variable root
+- `src/black/__init__.py:859` — Defined later exclude
+- `src/black/__init__.py:860` — Defined later exclude
+- `src/black/__init__.py:860` — Defined later exclude
+- `src/black/__init__.py:862` — Unresolved variable root
+- `src/black/__init__.py:864` — Unresolved variable src
+- `src/black/__init__.py:865` — Unresolved variable stdin_filename
+- `src/black/__init__.py:866` — Unresolved variable stdin_filename
+- `src/black/__init__.py:867` — Unresolved variable stdin_filename
+- `src/black/__init__.py:867` — Unresolved variable force_exclude
+- `src/black/__init__.py:868` — Unresolved variable report
+- `src/black/__init__.py:881` — Unresolved variable root
+- `src/black/__init__.py:884` — Unresolved variable root
+- `src/black/__init__.py:888` — Unresolved variable report
+- `src/black/__init__.py:889` — Unresolved variable verbose
+- `src/black/__init__.py:897` — Unresolved variable force_exclude
+- `src/black/__init__.py:898` — Unresolved variable report
+- `src/black/__init__.py:907` — Unresolved variable verbose
+- `src/black/__init__.py:907` — Unresolved variable quiet
+- `src/black/__init__.py:911` — Unresolved variable verbose
+- `src/black/__init__.py:916` — Unresolved variable verbose
+- `src/black/__init__.py:928` — Unresolved variable include
+- `src/black/__init__.py:930` — Unresolved variable extend_exclude
+- `src/black/__init__.py:931` — Unresolved variable force_exclude
+- `src/black/__init__.py:932` — Unresolved variable report
+- `src/black/__init__.py:934` — Unresolved variable verbose
+- `src/black/__init__.py:935` — Unresolved variable quiet
+- `src/black/__init__.py:939` — Unresolved variable verbose
+- `src/black/__init__.py:968` — Unresolved variable lines
+- `src/black/__init__.py:1016` — Unresolved variable lines
+- `src/black/__init__.py:1020` — Unresolved variable no_cache
+- `src/black/__init__.py:1022` — Unresolved variable cache_dir
+- `src/black/__init__.py:1025` — Unresolved variable cache_dir
+- `src/black/__init__.py:1030` — Unresolved variable lines
+- `src/black/__init__.py:1041` — Unresolved variable lines
+- `src/black/__init__.py:1075` — Unresolved attribute utc
+- `src/black/__init__.py:1083` — Unresolved variable lines
+- `src/black/__init__.py:1091` — Unresolved attribute decode
+- `src/black/__init__.py:1103` — Unresolved attribute utc
+- `src/black/__init__.py:1141` — Unresolved attribute utc
+- `src/black/__init__.py:1144` — Unresolved variable content
+- `src/black/__init__.py:1146` — Unresolved variable mode
+- `src/black/__init__.py:1147` — Unresolved variable mode
+- `src/black/__init__.py:1154` — Unresolved variable content
+- `src/black/__init__.py:1158` — Unresolved variable mode
+- `src/black/__init__.py:1158` — Unresolved variable lines
+- `src/black/__init__.py:1167` — Unresolved variable write_back
+- `src/black/__init__.py:1174` — Unresolved variable write_back
+- `src/black/__init__.py:1175` — Unresolved attribute utc
+- `src/black/__init__.py:1179` — Unresolved variable write_back
+- `src/black/__init__.py:1185` — Unresolved variable write_back
+- `src/black/__init__.py:1201` — Unresolved variable newline
+- `src/black/__init__.py:1202` — Unresolved variable newline
+- `src/black/__init__.py:1203` — Unresolved variable wrap_for_windows
+- `src/black/__init__.py:1207` — Unresolved variable encoding
+- `src/black/__init__.py:1207` — Unresolved variable newline
+- `src/black/__init__.py:1208` — Unresolved variable wrap_for_windows
+- `src/black/__init__.py:1247` — Unresolved variable mode
+- `src/black/__init__.py:1250` — Unresolved variable mode
+- `src/black/__init__.py:1253` — Unresolved variable mode
+- `src/black/__init__.py:1253` — Unresolved variable lines
+- `src/black/__init__.py:1269` — Unresolved variable mode
+- `src/black/__init__.py:1270` — Unresolved variable fast
+- `src/black/__init__.py:1270` — Unresolved variable mode
+- `src/black/__init__.py:1272` — Unresolved variable mode
+- `src/black/__init__.py:1272` — Unresolved variable lines
+- `src/black/__init__.py:1276` — Unresolved variable fast
+- `src/black/__init__.py:1276` — Unresolved variable mode
+- `src/black/__init__.py:1279` — Unresolved variable mode
+- `src/black/__init__.py:1279` — Unresolved variable lines
+- `src/black/__init__.py:1300` — Unresolved variable mode
+- `src/black/__init__.py:1308` — Unresolved variable mode
+- `src/black/__init__.py:1309` — Unresolved variable fast
+- `src/black/__init__.py:1310` — Unresolved variable mode
+- `src/black/__init__.py:1350` — Unresolved variable fast
+- `src/black/__init__.py:1350` — Unresolved variable mode
+- `src/black/__init__.py:1397` — Defined later lines
+- `src/black/__init__.py:1398` — Defined later lines
+- `src/black/__init__.py:1401` — Unresolved variable mode
+- `src/black/__init__.py:1414` — Unresolved variable mode
+- `src/black/__init__.py:1459` — Defined later line
+- `src/black/__init__.py:1460` — Defined later start
+- `src/black/__init__.py:1460` — Defined later line_number
+- `src/black/__init__.py:1460` — Defined later end
+- `src/black/__init__.py:1473` — Unresolved variable mode
+- `src/black/__init__.py:1477` — Unresolved variable mode
+- `src/black/__init__.py:1481` — Unresolved variable mode
+- `src/black/__init__.py:1482` — Unresolved variable mode
+- `src/black/__init__.py:1488` — Defined later feature
+- `src/black/__init__.py:1497` — Unresolved variable mode
+- `src/black/__init__.py:1497` — Unresolved variable lines
+- `src/black/__init__.py:1498` — Unresolved variable lines
+- `src/black/__init__.py:1500` — Unresolved variable lines
+- `src/black/__init__.py:1502` — Unresolved variable mode
+- `src/black/__init__.py:1503` — Unresolved variable mode
+- `src/black/__init__.py:1505` — Defined later feature
+- `src/black/__init__.py:1513` — Unresolved attribute visit
+- `src/black/__init__.py:1517` — Unresolved variable mode
+- `src/black/__init__.py:1529` — Unresolved variable mode
+- `src/black/__init__.py:1581` — Unresolved variable encoding_overwrite
+- `src/black/__init__.py:1582` — Unresolved variable encoding_overwrite
+- `src/black/__init__.py:1631` — Unresolved variable future_imports
+- `src/black/__init__.py:1633` — Unresolved variable future_import
+- `src/black/__init__.py:1634` — Unresolved variable future_imports
+- `src/black/__init__.py:1635` — Unresolved variable future_import
+- `src/black/__init__.py:1646` — Defined later child
+- `src/black/__init__.py:1656` — Unresolved attribute typedargslist
+- `src/black/__init__.py:1657` — Unresolved attribute arglist
+- `src/black/__init__.py:1658` — Unresolved attribute varargslist
+- `src/black/__init__.py:1668` — Unresolved attribute decorator
+- `src/black/__init__.py:1678` — Unresolved attribute typedargslist
+- `src/black/__init__.py:1678` — Unresolved attribute arglist
+- `src/black/__init__.py:1682` — Unresolved attribute typedargslist
+- `src/black/__init__.py:1691` — Unresolved attribute argument
+- `src/black/__init__.py:1697` — Unresolved attribute return_stmt
+- `src/black/__init__.py:1697` — Unresolved attribute yield_expr
+- `src/black/__init__.py:1699` — Unresolved attribute testlist_star_expr
+- `src/black/__init__.py:1700` — Defined later child
+- `src/black/__init__.py:1700` — Unresolved attribute star_expr
+- `src/black/__init__.py:1705` — Unresolved attribute annassign
+- `src/black/__init__.py:1707` — Unresolved attribute testlist_star_expr
+- `src/black/__init__.py:1712` — Unresolved attribute with_stmt
+- `src/black/__init__.py:1714` — Unresolved attribute atom
+- `src/black/__init__.py:1725` — Unresolved attribute match_stmt
+- `src/black/__init__.py:1728` — Unresolved attribute subscriptlist
+- `src/black/__init__.py:1728` — Unresolved attribute trailer
+- `src/black/__init__.py:1729` — Defined later child
+- `src/black/__init__.py:1729` — Unresolved attribute star_expr
+- `src/black/__init__.py:1734` — Unresolved attribute tname_star
+- `src/black/__init__.py:1736` — Unresolved attribute star_expr
+- `src/black/__init__.py:1740` — Unresolved attribute type_stmt
+- `src/black/__init__.py:1740` — Unresolved attribute typeparams
+- `src/black/__init__.py:1744` — Unresolved attribute typevartuple
+- `src/black/__init__.py:1744` — Unresolved attribute paramspec
+- `src/black/__init__.py:1744` — Unresolved attribute typevar
+- `src/black/__init__.py:1750` — Unresolved attribute except_clause
+- `src/black/__init__.py:1753` — Unresolved attribute testlist
+- `src/black/__init__.py:1770` — Unresolved attribute testlist
+- `src/black/__init__.py:1771` — Unresolved attribute testlist
+- `src/black/__init__.py:1780` — Unresolved attribute listmaker
+- `src/black/__init__.py:1781` — Unresolved attribute testlist_gexp
+- `src/black/__init__.py:1782` — Unresolved attribute dictsetmaker
+- `src/black/__init__.py:1783` — Unresolved attribute argument
+- `src/black/__init__.py:1788` — Defined later child
+- `src/black/__init__.py:1788` — Unresolved attribute comp_for
+- `src/black/__init__.py:1788` — Unresolved attribute old_comp_for
+- `src/black/__init__.py:1793` — Unresolved attribute star_expr
+- `src/black/__init__.py:1798` — Unresolved attribute asexpr_test
+- `src/black/__init__.py:1800` — Unresolved attribute atom
+- `src/black/__init__.py:1807` — Unresolved attribute testlist_gexp
+- `src/black/__init__.py:1808` — Unresolved variable child
+- `src/black/__init__.py:1816` — Unresolved variable future_imports
+- `src/black/__init__.py:1818` — Unresolved variable version
+- `src/black/__init__.py:1818` — Unresolved variable version
+- `src/black/__init__.py:1832` — Unresolved attribute import_as_name
+- `src/black/__init__.py:1838` — Unresolved attribute import_as_names
+- `src/black/__init__.py:1845` — Unresolved attribute simple_stmt
+- `src/black/__init__.py:1860` — Unresolved attribute import_from
+- `src/black/__init__.py:1919` — Unresolved variable lines
+- `src/black/__init__.py:1929` — Unresolved variable lines
+- `src/black/brackets.py:148` — Unresolved variable v
+- `src/black/brackets.py:148` — Unresolved variable k
+- `src/black/brackets.py:159` — Unresolved variable p
+- `src/black/brackets.py:231` — Unresolved attribute exprlist
+- `src/black/brackets.py:234` — Unresolved attribute comp_for
+- `src/black/brackets.py:235` — Unresolved attribute old_comp_for
+- `src/black/brackets.py:236` — Unresolved attribute for_stmt
+- `src/black/brackets.py:241` — Unresolved attribute varargslist
+- `src/black/brackets.py:244` — Unresolved attribute lambdef
+- `src/black/brackets.py:245` — Unresolved attribute old_lambdef
+- `src/black/brackets.py:269` — Unresolved attribute import_from
+- `src/black/brackets.py:269` — Unresolved attribute dotted_name
+- `src/black/brackets.py:277` — Unresolved attribute factor
+- `src/black/brackets.py:277` — Unresolved attribute star_expr
+- `src/black/brackets.py:297` — Unresolved attribute comp_for
+- `src/black/brackets.py:297` — Unresolved attribute old_comp_for
+- `src/black/brackets.py:309` — Unresolved attribute comp_if
+- `src/black/brackets.py:309` — Unresolved attribute old_comp_if
+- `src/black/brackets.py:313` — Unresolved attribute test
+- `src/black/brackets.py:322` — Unresolved attribute comp_op
+- `src/black/brackets.py:322` — Unresolved attribute comparison
+- `src/black/brackets.py:334` — Unresolved attribute comp_op
+- `src/black/brackets.py:355` — Unresolved attribute atom
+- `src/black/brackets.py:412` — Defined later i
+- `src/black/brackets.py:412` — Defined later l
+- `src/black/cache.py:82` — Defined later k
+- `src/black/cache.py:82` — Defined later v
+- `src/black/cache.py:99` — Unresolved attribute sha256
+- `src/black/cache.py:143` — Defined later src
+- `src/black/cache.py:143` — Defined later src
+- `src/black/cache.py:146` — Unresolved attribute mkdir
+- `src/black/cache.py:152` — Unresolved variable k
+- `src/black/cache.py:152` — Unresolved variable v
+- `src/black/comments.py:34` — Unresolved attribute except_clause
+- `src/black/comments.py:34` — Unresolved attribute case_block
+- `src/black/comments.py:93` — Unresolved variable block_depth
+- `src/black/comments.py:99` — Unresolved variable block_depth
+- `src/black/comments.py:135` — Unresolved variable is_endmarker
+- `src/black/comments.py:139` — Unresolved variable mode
+- `src/black/comments.py:521` — Defined later leaf
+- `src/black/comments.py:548` — Unresolved variable child
+- `src/black/comments.py:548` — Unresolved variable next_child
+- `src/black/comments.py:565` — Defined later c
+- `src/black/comments.py:574` — Defined later eof_node
+- `src/black/comments.py:579` — Defined later ignored
+- `src/black/comments.py:581` — Defined later ignored
+- `src/black/comments.py:582` — Defined later child
+- `src/black/comments.py:582` — Defined later ignored
+- `src/black/comments.py:590` — Defined later line
+- `src/black/comments.py:590` — Defined later line
+- `src/black/comments.py:770` — Unresolved attribute simple_stmt
+- `src/black/comments.py:782` — Unresolved attribute suite
+- `src/black/comments.py:810` — Unresolved attribute suite
+- `src/black/comments.py:815` — Unresolved attribute simple_stmt
+- `src/black/comments.py:827` — Unresolved variable leaf
+- `src/black/comments.py:845` — Defined later leaf
+- `src/black/comments.py:845` — Unresolved variable ignored
+- `src/black/comments.py:845` — Defined later node
+- `src/black/comments.py:855` — Unresolved attribute async_stmt
+- `src/black/comments.py:871` — Defined later leaf
+- `src/black/comments.py:871` — Defined later leaf
+- `src/black/comments.py:893` — Unresolved variable a
+- `src/black/comments.py:893` — Unresolved variable b
+- `src/black/comments.py:916` — Unresolved attribute suite
+- `src/black/comments.py:923` — Unresolved attribute suite
+- `src/black/comments.py:961` — Unresolved attribute atom
+- `src/black/comments.py:997` — Unresolved attribute atom
+- `src/black/comments.py:998` — Unresolved attribute trailer
+- `src/black/comments.py:999` — Unresolved attribute import_from
+- `src/black/comments.py:1018` — Unresolved attribute asexpr_test
+- `src/black/comments.py:1020` — Unresolved attribute with_stmt
+- `src/black/comments.py:1076` — Unresolved attribute file_input
+- `src/black/comments.py:1077` — Unresolved attribute suite
+- `src/black/comments.py:1083` — Defined later ignored
+- `src/black/comments.py:1085` — Defined later ignored
+- `src/black/comments.py:1086` — Defined later child
+- `src/black/comments.py:1086` — Defined later ignored
+- `src/black/comments.py:1151` — Defined later comment
+- `src/black/comments.py:1162` — Unresolved variable comment
+- `src/black/concurrency.py:63` — Defined later task
+- `src/black/concurrency.py:63` — Defined later task
+- `src/black/concurrency.py:234` — Defined later src
+- `src/black/concurrency.py:236` — Defined later src
+- `src/black/debug.py:33` — Unresolved attribute visit
+- `src/black/files.py:68` — Defined later s
+- `src/black/files.py:68` — Defined later s
+- `src/black/files.py:74` — Defined later src
+- `src/black/files.py:91` — Defined later src
+- `src/black/files.py:96` — Defined later path
+- `src/black/files.py:96` — Defined later path
+- `src/black/files.py:96` — Defined later path
+- `src/black/files.py:99` — Defined later parents
+- `src/black/files.py:102` — Unresolved variable path
+- `src/black/files.py:152` — Defined later k
+- `src/black/files.py:152` — Defined later v
+- `src/black/files.py:157` — Defined later v
+- `src/black/files.py:212` — Defined later v
+- `src/black/files.py:212` — Defined later v
+- `src/black/files.py:215` — Unresolved variable v
+- `src/black/files.py:326` — Defined later p
+- `src/black/files.py:326` — Defined later p
+- `src/black/files.py:436` — Unresolved variable verbose
+- `src/black/files.py:437` — Unresolved variable quiet
+- `src/black/files.py:442` — Unresolved variable verbose
+- `src/black/files.py:442` — Unresolved variable quiet
+- `src/black/handle_ipynb_magics.py:55` — Unresolved variable warn
+- `src/black/handle_ipynb_magics.py:81` — Defined later transformed_magic
+- `src/black/handle_ipynb_magics.py:337` — Defined later r
+- `src/black/handle_ipynb_magics.py:337` — Defined later r
+- `src/black/handle_ipynb_magics.py:359` — Unresolved variable line
+- `src/black/linegen.py:264` — Unresolved attribute visit
+- `src/black/linegen.py:273` — Unresolved attribute atom
+- `src/black/linegen.py:298` — Unresolved attribute atom
+- `src/black/linegen.py:312` — Unresolved attribute visit
+- `src/black/linegen.py:322` — Unresolved attribute visit
+- `src/black/linegen.py:327` — Unresolved attribute visit
+- `src/black/linegen.py:340` — Unresolved attribute atom
+- `src/black/linegen.py:374` — Unresolved attribute visit
+- `src/black/linegen.py:382` — Unresolved attribute visit
+- `src/black/linegen.py:388` — Unresolved attribute visit
+- `src/black/linegen.py:400` — Unresolved attribute trailer
+- `src/black/linegen.py:418` — Unresolved attribute trailer
+- `src/black/linegen.py:437` — Defined later leaf
+- `src/black/linegen.py:446` — Unresolved attribute atom
+- `src/black/linegen.py:460` — Unresolved attribute testlist_gexp
+- `src/black/linegen.py:461` — Unresolved attribute subscriptlist
+- `src/black/linegen.py:526` — Defined later line
+- `src/black/linegen.py:527` — Defined later line
+- `src/black/linegen.py:557` — Unresolved attribute power
+- `src/black/linegen.py:564` — Unresolved attribute atom
+- `src/black/linegen.py:723` — Defined later child
+- `src/black/linegen.py:731` — Defined later child
+- `src/black/linegen.py:733` — Unresolved attribute fstring_replacement_field
+- `src/black/linegen.py:744` — Defined later child
+- `src/black/linegen.py:752` — Defined later child
+- `src/black/linegen.py:754` — Unresolved attribute tstring_replacement_field
+- `src/black/linegen.py:1023` — Defined later leaf
+- `src/black/linegen.py:1023` — Defined later leaf
+- `src/black/linegen.py:1275` — Defined later leaf
+- `src/black/linegen.py:1371` — Unresolved attribute dictsetmaker
+- `src/black/linegen.py:1376` — Unresolved attribute case_block
+- `src/black/linegen.py:1423` — Unresolved attribute dictsetmaker
+- `src/black/linegen.py:1427` — Defined later leaf
+- `src/black/linegen.py:1442` — Defined later leaf
+- `src/black/linegen.py:1451` — Defined later leaf
+- `src/black/linegen.py:1467` — Defined later leaf
+- `src/black/linegen.py:1468` — Defined later leaf
+- `src/black/linegen.py:1536` — Defined later leaf
+- `src/black/linegen.py:1536` — Defined later leaf
+- `src/black/linegen.py:1541` — Defined later leaf
+- `src/black/linegen.py:1541` — Defined later leaf
+- `src/black/linegen.py:1587` — Unresolved variable component
+- `src/black/linegen.py:1601` — Unresolved variable component
+- `src/black/linegen.py:1612` — Unresolved variable component
+- `src/black/linegen.py:1644` — Unresolved attribute typedargslist
+- `src/black/linegen.py:1646` — Unresolved attribute arglist
+- `src/black/linegen.py:1646` — Unresolved attribute argument
+- `src/black/linegen.py:1719` — Unresolved attribute dictsetmaker
+- `src/black/linegen.py:1726` — Defined later leaf
+- `src/black/linegen.py:1741` — Defined later i
+- `src/black/linegen.py:1741` — Defined later l
+- `src/black/linegen.py:1780` — Defined later i
+- `src/black/linegen.py:1780` — Defined later leaf
+- `src/black/linegen.py:1783` — Defined later i
+- `src/black/linegen.py:1828` — Defined later current_line
+- `src/black/linegen.py:1830` — Defined later current_line
+- `src/black/linegen.py:1899` — Defined later current_line
+- `src/black/linegen.py:1901` — Defined later current_line
+- `src/black/linegen.py:1928` — Defined later leaf
+- `src/black/linegen.py:2021` — Unresolved attribute file_input
+- `src/black/linegen.py:2022` — Unresolved attribute suite
+- `src/black/linegen.py:2049` — Unresolved attribute atom
+- `src/black/linegen.py:2055` — Unresolved attribute test
+- `src/black/linegen.py:2055` — Unresolved attribute lambdef
+- `src/black/linegen.py:2064` — Unresolved attribute atom
+- `src/black/linegen.py:2077` — Unresolved attribute atom
+- `src/black/linegen.py:2082` — Unresolved attribute atom
+- `src/black/linegen.py:2087` — Unresolved attribute fstring
+- `src/black/linegen.py:2095` — Unresolved attribute atom
+- `src/black/linegen.py:2116` — Unresolved attribute exprlist
+- `src/black/linegen.py:2117` — Unresolved attribute testlist_star_expr
+- `src/black/linegen.py:2118` — Unresolved attribute testlist_gexp
+- `src/black/linegen.py:2119` — Unresolved attribute testlist
+- `src/black/linegen.py:2120` — Unresolved attribute listmaker
+- `src/black/linegen.py:2121` — Unresolved attribute star_expr
+- `src/black/linegen.py:2124` — Unresolved attribute atom
+- `src/black/linegen.py:2132` — Unresolved attribute atom
+- `src/black/linegen.py:2139` — Unresolved attribute comparison
+- `src/black/linegen.py:2140` — Unresolved attribute not_test
+- `src/black/linegen.py:2141` — Unresolved attribute and_test
+- `src/black/linegen.py:2142` — Unresolved attribute or_test
+- `src/black/linegen.py:2143` — Unresolved attribute test
+- `src/black/linegen.py:2144` — Unresolved attribute lambdef
+- `src/black/linegen.py:2145` — Unresolved attribute namedexpr_test
+- `src/black/linegen.py:2146` — Unresolved attribute testlist_gexp
+- `src/black/linegen.py:2147` — Unresolved attribute yield_expr
+- `src/black/linegen.py:2148` — Unresolved attribute old_lambdef
+- `src/black/linegen.py:2149` — Unresolved attribute old_test
+- `src/black/linegen.py:2153` — Unresolved attribute arith_expr
+- `src/black/linegen.py:2154` — Unresolved attribute term
+- `src/black/linegen.py:2155` — Unresolved attribute expr
+- `src/black/linegen.py:2156` — Unresolved attribute xor_expr
+- `src/black/linegen.py:2157` — Unresolved attribute and_expr
+- `src/black/linegen.py:2158` — Unresolved attribute shift_expr
+- `src/black/linegen.py:2166` — Unresolved attribute power
+- `src/black/linegen.py:2167` — Unresolved variable child
+- `src/black/linegen.py:2174` — Unresolved attribute atom
+- `src/black/linegen.py:2202` — Unresolved attribute atom
+- `src/black/linegen.py:2207` — Defined later leaf
+- `src/black/linegen.py:2229` — Unresolved variable mode
+- `src/black/linegen.py:2234` — Unresolved variable mode
+- `src/black/linegen.py:2235` — Unresolved attribute for_stmt
+- `src/black/linegen.py:2235` — Unresolved attribute comp_for
+- `src/black/linegen.py:2235` — Unresolved attribute old_comp_for
+- `src/black/linegen.py:2238` — Unresolved variable mode
+- `src/black/linegen.py:2238` — Unresolved variable features
+- `src/black/linegen.py:2240` — Unresolved attribute expr_stmt
+- `src/black/linegen.py:2242` — Defined later i
+- `src/black/linegen.py:2242` — Defined later child
+- `src/black/linegen.py:2248` — Unresolved variable mode
+- `src/black/linegen.py:2248` — Unresolved variable features
+- `src/black/linegen.py:2250` — Unresolved attribute del_stmt
+- `src/black/linegen.py:2253` — Unresolved variable mode
+- `src/black/linegen.py:2253` — Unresolved variable features
+- `src/black/linegen.py:2255` — Unresolved attribute with_stmt
+- `src/black/linegen.py:2257` — Unresolved attribute asexpr_test
+- `src/black/linegen.py:2259` — Unresolved variable mode
+- `src/black/linegen.py:2259` — Unresolved variable features
+- `src/black/linegen.py:2265` — Unresolved attribute with_stmt
+- `src/black/linegen.py:2266` — Unresolved variable mode
+- `src/black/linegen.py:2266` — Unresolved variable features
+- `src/black/linegen.py:2272` — Unresolved attribute annassign
+- `src/black/linegen.py:2274` — Unresolved variable mode
+- `src/black/linegen.py:2274` — Unresolved variable features
+- `src/black/linegen.py:2279` — Unresolved attribute case_block
+- `src/black/linegen.py:2281` — Unresolved variable mode
+- `src/black/linegen.py:2281` — Unresolved variable features
+- `src/black/linegen.py:2285` — Unresolved attribute guard
+- `src/black/linegen.py:2287` — Unresolved variable mode
+- `src/black/linegen.py:2287` — Unresolved variable features
+- `src/black/linegen.py:2294` — Unresolved attribute testlist_star_expr
+- `src/black/linegen.py:2301` — Unresolved attribute atom
+- `src/black/linegen.py:2302` — Unresolved attribute expr_stmt
+- `src/black/linegen.py:2303` — Unresolved variable mode
+- `src/black/linegen.py:2310` — Unresolved attribute atom
+- `src/black/linegen.py:2314` — Unresolved variable mode
+- `src/black/linegen.py:2315` — Unresolved variable features
+- `src/black/linegen.py:2320` — Unresolved variable mode
+- `src/black/linegen.py:2321` — Unresolved variable features
+- `src/black/linegen.py:2329` — Defined later leaf
+- `src/black/linegen.py:2342` — Unresolved attribute atom
+- `src/black/linegen.py:2343` — Unresolved attribute for_stmt
+- `src/black/linegen.py:2351` — Unresolved variable mode
+- `src/black/linegen.py:2352` — Unresolved variable features
+- `src/black/linegen.py:2356` — Unresolved attribute with_stmt
+- `src/black/linegen.py:2357` — Unresolved variable mode
+- `src/black/linegen.py:2357` — Unresolved variable features
+- `src/black/linegen.py:2360` — Unresolved attribute yield_expr
+- `src/black/linegen.py:2361` — Unresolved attribute yield_arg
+- `src/black/linegen.py:2362` — Unresolved variable mode
+- `src/black/linegen.py:2366` — Unresolved attribute atom
+- `src/black/linegen.py:2370` — Unresolved attribute atom
+- `src/black/linegen.py:2378` — Unresolved variable mode
+- `src/black/linegen.py:2378` — Unresolved variable features
+- `src/black/linegen.py:2386` — Unresolved variable mode
+- `src/black/linegen.py:2386` — Unresolved variable features
+- `src/black/linegen.py:2391` — Unresolved attribute import_from
+- `src/black/linegen.py:2397` — Unresolved attribute except_clause
+- `src/black/linegen.py:2414` — Unresolved attribute guard
+- `src/black/linegen.py:2421` — Unresolved variable mode
+- `src/black/linegen.py:2422` — Unresolved attribute guard
+- `src/black/linegen.py:2424` — Unresolved variable mode
+- `src/black/linegen.py:2428` — Unresolved variable mode
+- `src/black/linegen.py:2457` — Unresolved attribute atom
+- `src/black/linegen.py:2480` — Unresolved attribute power
+- `src/black/linegen.py:2483` — Defined later child
+- `src/black/linegen.py:2483` — Defined later child
+- `src/black/linegen.py:2502` — Unresolved attribute atom
+- `src/black/linegen.py:2528` — Unresolved attribute atom
+- `src/black/linegen.py:2528` — Unresolved attribute testlist_gexp
+- `src/black/linegen.py:2553` — Unresolved attribute atom
+- `src/black/linegen.py:2564` — Unresolved attribute testlist_gexp
+- `src/black/linegen.py:2568` — Unresolved attribute asexpr_test
+- `src/black/linegen.py:2569` — Defined later leaf
+- `src/black/linegen.py:2606` — Unresolved attribute annassign
+- `src/black/linegen.py:2613` — Unresolved attribute atom
+- `src/black/linegen.py:2628` — Unresolved variable leaf
+- `src/black/linegen.py:2628` — Unresolved variable child
+- `src/black/linegen.py:2665` — Unresolved attribute atom
+- `src/black/linegen.py:2665` — Unresolved attribute expr
+- `src/black/linegen.py:2668` — Unresolved attribute asexpr_test
+- `src/black/linegen.py:2671` — Unresolved attribute with_stmt
+- `src/black/linegen.py:2676` — Unresolved attribute expr_stmt
+- `src/black/linegen.py:2678` — Unresolved attribute simple_stmt
+- `src/black/linegen.py:2698` — Unresolved attribute except_clause
+- `src/black/linegen.py:2710` — Unresolved attribute comparison
+- `src/black/linegen.py:2712` — Unresolved attribute simple_stmt
+- `src/black/linegen.py:2719` — Unresolved attribute comparison
+- `src/black/linegen.py:2720` — Unresolved attribute annassign
+- `src/black/linegen.py:2721` — Unresolved attribute expr_stmt
+- `src/black/linegen.py:2722` — Unresolved attribute assert_stmt
+- `src/black/linegen.py:2723` — Unresolved attribute return_stmt
+- `src/black/linegen.py:2724` — Unresolved attribute yield_arg
+- `src/black/linegen.py:2725` — Unresolved attribute yield_expr
+- `src/black/linegen.py:2726` — Unresolved attribute except_clause
+- `src/black/linegen.py:2727` — Unresolved attribute funcdef
+- `src/black/linegen.py:2728` — Unresolved attribute with_stmt
+- `src/black/linegen.py:2729` — Unresolved attribute testlist_gexp
+- `src/black/linegen.py:2730` — Unresolved attribute tname
+- `src/black/linegen.py:2732` — Unresolved attribute for_stmt
+- `src/black/linegen.py:2733` — Unresolved attribute del_stmt
+- `src/black/linegen.py:2734` — Unresolved attribute simple_stmt
+- `src/black/linegen.py:2738` — Unresolved attribute atom
+- `src/black/linegen.py:2811` — Unresolved attribute atom
+- `src/black/linegen.py:2811` — Unresolved attribute import_from
+- `src/black/linegen.py:2850` — Unresolved attribute type
+- `src/black/linegen.py:2863` — Unresolved attribute type
+- `src/black/linegen.py:2878` — Unresolved attribute type
+- `src/black/linegen.py:2911` — Defined later leaf
+- `src/black/linegen.py:2918` — Defined later lf
+- `src/black/linegen.py:2918` — Defined later lf
+- `src/black/linegen.py:2938` — Defined later line_str
+- `src/black/linegen.py:2944` — Defined later bracket
+- `src/black/linegen.py:2960` — Defined later bracket
+- `src/black/linegen.py:2976` — Unresolved variable leaf
+- `src/black/linegen.py:2980` — Unresolved variable leaf
+- `src/black/linegen.py:2993` — Defined later ln
+- `src/black/lines.py:221` — Unresolved variable leaf
+- `src/black/lines.py:246` — Unresolved variable first_leaf_matches
+- `src/black/lines.py:246` — Unresolved variable first_leaf_matches
+- `src/black/lines.py:261` — Defined later leaf
+- `src/black/lines.py:341` — Defined later leaf
+- `src/black/lines.py:341` — Defined later leaf
+- `src/black/lines.py:343` — Defined later leaf
+- `src/black/lines.py:343` — Defined later leaf
+- `src/black/lines.py:358` — Unresolved variable leaf
+- `src/black/lines.py:379` — Unresolved attribute trailer
+- `src/black/lines.py:389` — Unresolved attribute subscriptlist
+- `src/black/lines.py:461` — Unresolved attribute listmaker
+- `src/black/lines.py:464` — Unresolved attribute subscriptlist
+- `src/black/lines.py:479` — Defined later n
+- `src/black/lines.py:523` — Unresolved variable leaf
+- `src/black/lines.py:529` — Unresolved variable comment
+- `src/black/lines.py:531` — Unresolved variable comment
+- `src/black/lines.py:612` — Unresolved attribute async_funcdef
+- `src/black/lines.py:614` — Unresolved attribute funcdef
+- `src/black/lines.py:617` — Unresolved attribute funcdef
+- `src/black/lines.py:632` — Unresolved variable sub
+- `src/black/lines.py:632` — Unresolved attribute funcdef
+- `src/black/lines.py:632` — Unresolved attribute async_funcdef
+- `src/black/lines.py:633` — Unresolved variable sub
+- `src/black/lines.py:643` — Unresolved variable reverse
+- `src/black/lines.py:645` — Unresolved attribute decorated
+- `src/black/lines.py:649` — Unresolved variable reverse
+- `src/black/lines.py:658` — Unresolved attribute decorated
+- `src/black/lines.py:660` — Unresolved attribute funcdef
+- `src/black/lines.py:660` — Unresolved attribute async_funcdef
+- `src/black/lines.py:676` — Unresolved attribute suite
+- `src/black/lines.py:683` — Unresolved attribute decorated
+- `src/black/lines.py:714` — Unresolved attribute decorated
+- `src/black/lines.py:717` — Unresolved attribute suite
+- `src/black/lines.py:717` — Unresolved attribute file_input
+- `src/black/lines.py:734` — Unresolved attribute funcdef
+- `src/black/lines.py:734` — Unresolved attribute async_funcdef
+- `src/black/lines.py:746` — Unresolved variable child
+- `src/black/lines.py:746` — Unresolved attribute classdef
+- `src/black/lines.py:768` — Unresolved attribute decorated
+- `src/black/lines.py:770` — Unresolved variable include_conditional_blocks
+- `src/black/lines.py:770` — Unresolved attribute if_stmt
+- `src/black/lines.py:775` — Unresolved attribute suite
+- `src/black/lines.py:809` — Unresolved attribute funcdef
+- `src/black/lines.py:809` — Unresolved attribute async_funcdef
+- `src/black/lines.py:844` — Unresolved attribute suite
+- `src/black/lines.py:892` — Unresolved attribute suite
+- `src/black/lines.py:896` — Unresolved attribute if_stmt
+- `src/black/lines.py:1184` — Unresolved variable leaf
+- `src/black/lines.py:1405` — Defined later line_str
+- `src/black/lines.py:1412` — Unresolved variable mode
+- `src/black/lines.py:1415` — Unresolved variable mode
+- `src/black/lines.py:1415` — Unresolved variable mode
+- `src/black/lines.py:1431` — Defined later leaf
+- `src/black/lines.py:1466` — Unresolved attribute test
+- `src/black/lines.py:1467` — Unresolved attribute dictsetmaker
+- `src/black/lines.py:1498` — Unresolved variable val
+- `src/black/lines.py:1565` — Defined later index
+- `src/black/lines.py:1565` — Defined later leaf
+- `src/black/lines.py:1652` — Defined later leaf
+- `src/black/lines.py:1677` — Defined later comment
+- `src/black/lines.py:1681` — Defined later comment
+- `src/black/lines.py:1806` — Unresolved attribute trailer
+- `src/black/lines.py:1830` — Unresolved variable first
+- `src/black/lines.py:1834` — Unresolved variable line_length
+- `src/black/lines.py:1855` — Unresolved variable last
+- `src/black/lines.py:1856` — Unresolved variable line_length
+- `src/black/mode.py:253` — Unresolved variable version
+- `src/black/mode.py:333` — Defined later version
+- `src/black/mode.py:343` — Defined later f
+- `src/black/nodes.py:30` — Unresolved attribute if_stmt
+- `src/black/nodes.py:31` — Unresolved attribute while_stmt
+- `src/black/nodes.py:32` — Unresolved attribute for_stmt
+- `src/black/nodes.py:33` — Unresolved attribute try_stmt
+- `src/black/nodes.py:34` — Unresolved attribute except_clause
+- `src/black/nodes.py:35` — Unresolved attribute with_stmt
+- `src/black/nodes.py:36` — Unresolved attribute funcdef
+- `src/black/nodes.py:37` — Unresolved attribute classdef
+- `src/black/nodes.py:38` — Unresolved attribute match_stmt
+- `src/black/nodes.py:39` — Unresolved attribute case_block
+- `src/black/nodes.py:71` — Unresolved attribute arglist
+- `src/black/nodes.py:72` — Unresolved attribute argument
+- `src/black/nodes.py:73` — Unresolved attribute trailer
+- `src/black/nodes.py:74` — Unresolved attribute typedargslist
+- `src/black/nodes.py:75` — Unresolved attribute varargslist
+- `src/black/nodes.py:76` — Unresolved attribute typevartuple
+- `src/black/nodes.py:77` — Unresolved attribute paramspec
+- `src/black/nodes.py:80` — Unresolved attribute atom
+- `src/black/nodes.py:81` — Unresolved attribute dictsetmaker
+- `src/black/nodes.py:82` — Unresolved attribute listmaker
+- `src/black/nodes.py:83` — Unresolved attribute testlist_gexp
+- `src/black/nodes.py:84` — Unresolved attribute testlist_star_expr
+- `src/black/nodes.py:85` — Unresolved attribute subject_expr
+- `src/black/nodes.py:86` — Unresolved attribute pattern
+- `src/black/nodes.py:89` — Unresolved attribute test
+- `src/black/nodes.py:90` — Unresolved attribute lambdef
+- `src/black/nodes.py:91` — Unresolved attribute or_test
+- `src/black/nodes.py:92` — Unresolved attribute and_test
+- `src/black/nodes.py:93` — Unresolved attribute not_test
+- `src/black/nodes.py:94` — Unresolved attribute comparison
+- `src/black/nodes.py:95` — Unresolved attribute star_expr
+- `src/black/nodes.py:96` — Unresolved attribute expr
+- `src/black/nodes.py:97` — Unresolved attribute xor_expr
+- `src/black/nodes.py:98` — Unresolved attribute and_expr
+- `src/black/nodes.py:99` — Unresolved attribute shift_expr
+- `src/black/nodes.py:100` — Unresolved attribute arith_expr
+- `src/black/nodes.py:101` — Unresolved attribute trailer
+- `src/black/nodes.py:102` — Unresolved attribute term
+- `src/black/nodes.py:103` — Unresolved attribute power
+- `src/black/nodes.py:104` — Unresolved attribute namedexpr_test
+- `src/black/nodes.py:106` — Unresolved attribute tname
+- `src/black/nodes.py:106` — Unresolved attribute tname_star
+- `src/black/nodes.py:125` — Unresolved attribute testlist
+- `src/black/nodes.py:125` — Unresolved attribute testlist_star_expr
+- `src/black/nodes.py:125` — Unresolved attribute exprlist
+- `src/black/nodes.py:131` — Unresolved attribute keys
+- `src/black/nodes.py:132` — Unresolved attribute values
+- `src/black/nodes.py:200` — Unresolved attribute subscript
+- `src/black/nodes.py:201` — Unresolved attribute subscriptlist
+- `src/black/nodes.py:202` — Unresolved attribute sliceop
+- `src/black/nodes.py:207` — Unresolved attribute fstring_replacement_field
+- `src/black/nodes.py:208` — Unresolved attribute tstring_replacement_field
+- `src/black/nodes.py:222` — Unresolved variable complex_subscript
+- `src/black/nodes.py:230` — Unresolved attribute arglist
+- `src/black/nodes.py:231` — Unresolved attribute argument
+- `src/black/nodes.py:232` — Unresolved attribute parameters
+- `src/black/nodes.py:233` — Unresolved attribute varargslist
+- `src/black/nodes.py:237` — Unresolved attribute typedargslist
+- `src/black/nodes.py:245` — Unresolved attribute star_expr
+- `src/black/nodes.py:246` — Unresolved attribute subscriptlist
+- `src/black/nodes.py:246` — Unresolved attribute tname_star
+- `src/black/nodes.py:256` — Unresolved attribute subscript
+- `src/black/nodes.py:256` — Unresolved attribute sliceop
+- `src/black/nodes.py:257` — Unresolved variable complex_subscript
+- `src/black/nodes.py:261` — Unresolved attribute factor
+- `src/black/nodes.py:266` — Unresolved attribute decorator
+- `src/black/nodes.py:276` — Unresolved attribute parameters
+- `src/black/nodes.py:276` — Unresolved attribute arglist
+- `src/black/nodes.py:281` — Unresolved attribute varargslist
+- `src/black/nodes.py:286` — Unresolved attribute typedargslist
+- `src/black/nodes.py:310` — Unresolved attribute trailer
+- `src/black/nodes.py:322` — Unresolved attribute argument
+- `src/black/nodes.py:335` — Unresolved attribute decorator
+- `src/black/nodes.py:339` — Unresolved attribute dotted_name
+- `src/black/nodes.py:347` — Unresolved attribute classdef
+- `src/black/nodes.py:354` — Unresolved attribute subscript
+- `src/black/nodes.py:354` — Unresolved attribute sliceop
+- `src/black/nodes.py:358` — Unresolved attribute subscriptlist
+- `src/black/nodes.py:366` — Unresolved variable complex_subscript
+- `src/black/nodes.py:369` — Unresolved attribute atom
+- `src/black/nodes.py:374` — Unresolved attribute dictsetmaker
+- `src/black/nodes.py:379` — Unresolved attribute factor
+- `src/black/nodes.py:379` — Unresolved attribute star_expr
+- `src/black/nodes.py:389` — Unresolved attribute subscript
+- `src/black/nodes.py:390` — Unresolved attribute sliceop
+- `src/black/nodes.py:394` — Unresolved attribute argument
+- `src/black/nodes.py:400` — Unresolved attribute import_from
+- `src/black/nodes.py:412` — Unresolved attribute sliceop
+- `src/black/nodes.py:415` — Unresolved attribute except_clause
+- `src/black/nodes.py:419` — Unresolved attribute typeparams
+- `src/black/nodes.py:424` — Unresolved attribute typevartuple
+- `src/black/nodes.py:424` — Unresolved attribute paramspec
+- `src/black/nodes.py:429` — Unresolved variable mode
+- `src/black/nodes.py:535` — Unresolved attribute file_input
+- `src/black/nodes.py:558` — Unresolved attribute arith_expr
+- `src/black/nodes.py:559` — Unresolved attribute shift_expr
+- `src/black/nodes.py:560` — Unresolved attribute xor_expr
+- `src/black/nodes.py:561` — Unresolved attribute and_expr
+- `src/black/nodes.py:571` — Unresolved attribute factor
+- `src/black/nodes.py:574` — Unresolved variable child
+- `src/black/nodes.py:577` — Unresolved attribute power
+- `src/black/nodes.py:597` — Unresolved attribute simple_stmt
+- `src/black/nodes.py:600` — Unresolved attribute file_input
+- `src/black/nodes.py:605` — Unresolved attribute simple_stmt
+- `src/black/nodes.py:610` — Unresolved attribute parameters
+- `src/black/nodes.py:610` — Unresolved attribute simple_stmt
+- `src/black/nodes.py:621` — Unresolved attribute atom
+- `src/black/nodes.py:630` — Unresolved attribute atom
+- `src/black/nodes.py:632` — Unresolved attribute testlist_gexp
+- `src/black/nodes.py:647` — Unresolved attribute trailer
+- `src/black/nodes.py:648` — Unresolved attribute subscriptlist
+- `src/black/nodes.py:656` — Unresolved attribute atom
+- `src/black/nodes.py:659` — Unresolved attribute testlist_gexp
+- `src/black/nodes.py:668` — Unresolved attribute atom
+- `src/black/nodes.py:677` — Unresolved attribute atom
+- `src/black/nodes.py:680` — Unresolved attribute testlist_gexp
+- `src/black/nodes.py:683` — Unresolved variable child
+- `src/black/nodes.py:683` — Unresolved attribute namedexpr_test
+- `src/black/nodes.py:688` — Unresolved attribute atom
+- `src/black/nodes.py:691` — Unresolved attribute testlist_gexp
+- `src/black/nodes.py:694` — Unresolved variable child
+- `src/black/nodes.py:694` — Unresolved attribute star_expr
+- `src/black/nodes.py:699` — Unresolved attribute atom
+- `src/black/nodes.py:702` — Unresolved attribute testlist_gexp
+- `src/black/nodes.py:705` — Unresolved variable child
+- `src/black/nodes.py:705` — Unresolved attribute old_comp_for
+- `src/black/nodes.py:749` — Unresolved attribute arglist
+- `src/black/nodes.py:750` — Unresolved attribute typedargslist
+- `src/black/nodes.py:761` — Unresolved attribute namedexpr_test
+- `src/black/nodes.py:766` — Unresolved attribute trailer
+- `src/black/nodes.py:801` — Unresolved attribute power
+- `src/black/nodes.py:816` — Unresolved attribute yield_expr
+- `src/black/nodes.py:822` — Unresolved attribute atom
+- `src/black/nodes.py:847` — Unresolved attribute star_expr
+- `src/black/nodes.py:860` — Unresolved attribute fstring
+- `src/black/nodes.py:884` — Unresolved attribute suite
+- `src/black/nodes.py:884` — Unresolved attribute simple_stmt
+- `src/black/nodes.py:887` — Unresolved attribute funcdef
+- `src/black/nodes.py:887` — Unresolved attribute classdef
+- `src/black/nodes.py:915` — Unresolved attribute simple_stmt
+- `src/black/nodes.py:924` — Unresolved attribute atom
+- `src/black/nodes.py:926` — Unresolved variable leaf
+- `src/black/nodes.py:934` — Unresolved attribute atom
+- `src/black/nodes.py:966` — Unresolved attribute lazy_import
+- `src/black/nodes.py:970` — Unresolved attribute import_name
+- `src/black/nodes.py:971` — Unresolved attribute import_from
+- `src/black/nodes.py:983` — Unresolved attribute with_stmt
+- `src/black/nodes.py:987` — Unresolved attribute with_stmt
+- `src/black/nodes.py:1000` — Unresolved attribute async_stmt
+- `src/black/nodes.py:1000` — Unresolved attribute async_funcdef
+- `src/black/nodes.py:1051` — Unresolved variable visible
+- `src/black/nodes.py:1052` — Unresolved variable visible
+- `src/black/nodes.py:1055` — Defined later index
+- `src/black/nodes.py:1057` — Unresolved attribute atom
+- `src/black/nodes.py:1065` — Unresolved attribute atom
+- `src/black/nodes.py:1119` — Unresolved attribute tname
+- `src/black/output.py:49` — Defined later cell_number
+- `src/black/output.py:50` — Defined later cell_number
+- `src/black/output.py:51` — Defined later cell_number
+- `src/black/output.py:52` — Defined later cell_number
+- `src/black/output.py:70` — Defined later match
+- `src/black/output.py:70` — Unresolved attribute finditer
+- `src/black/output.py:132` — Unresolved attribute write
+- `src/black/output.py:133` — Unresolved variable ensure_final_newline
+- `src/black/output.py:134` — Unresolved attribute write
+- `src/black/parsing.py:68` — Defined later v
+- `src/black/parsing.py:86` — Unresolved variable tv
+- `src/black/parsing.py:143` — Unresolved attribute file_input
+- `src/black/parsing.py:168` — Unresolved variable type_comments
+- `src/black/parsing.py:174` — Defined later minor
+- `src/black/parsing.py:197` — Unresolved variable i
+- `src/black/parsing.py:279` — Unresolved attribute rstrip
+- `src/black/ranges.py:128` — Defined later start
+- `src/black/ranges.py:128` — Defined later end
+- `src/black/ranges.py:131` — Defined later line
+- `src/black/ranges.py:131` — Defined later start
+- `src/black/ranges.py:131` — Defined later end
+- `src/black/ranges.py:136` — Defined later index
+- `src/black/ranges.py:136` — Defined later original
+- `src/black/ranges.py:136` — Defined later modified
+- `src/black/ranges.py:210` — Defined later n
+- `src/black/ranges.py:210` — Defined later start
+- `src/black/ranges.py:210` — Defined later end
+- `src/black/ranges.py:213` — Unresolved attribute visit
+- `src/black/ranges.py:322` — Unresolved attribute simple_stmt
+- `src/black/ranges.py:324` — Unresolved attribute file_input
+- `src/black/ranges.py:324` — Unresolved attribute suite
+- `src/black/ranges.py:326` — Unresolved variable child
+- `src/black/ranges.py:326` — Unresolved variable child
+- `src/black/ranges.py:326` — Unresolved attribute suite
+- `src/black/ranges.py:326` — Unresolved attribute simple_stmt
+- `src/black/ranges.py:406` — Unresolved attribute match_stmt
+- `src/black/ranges.py:424` — Unresolved attribute suite
+- `src/black/ranges.py:432` — Unresolved attribute suite
+- `src/black/ranges.py:433` — Unresolved attribute simple_stmt
+- `src/black/ranges.py:438` — Unresolved attribute simple_stmt
+- `src/black/ranges.py:463` — Unresolved attribute decorator
+- `src/black/ranges.py:465` — Unresolved attribute decorators
+- `src/black/ranges.py:483` — Defined later leaf
+- `src/black/ranges.py:483` — Defined later node
+- `src/black/ranges.py:576` — Unresolved variable replacements
+- `src/black/ranges.py:579` — Unresolved variable replacements
+- `src/black/ranges.py:582` — Unresolved variable newline
+- `src/black/ranges.py:583` — Unresolved variable newline
+- `src/black/ranges.py:584` — Unresolved variable newline
+- `src/black/ranges.py:585` — Unresolved variable replacements
+- `src/black/ranges.py:593` — Unresolved variable lines_set
+- `src/black/ranges.py:616` — Unresolved attribute lineno
+- `src/black/ranges.py:624` — Unresolved attribute lineno
+- `src/black/ranges.py:629` — Unresolved attribute lineno
+- `src/black/ranges.py:709` — Defined later line
+- `src/black/ranges.py:716` — Defined later block
+- `src/black/ranges.py:716` — Defined later block
+- `src/black/ranges.py:716` — Defined later block
+- `src/black/strings.py:18` — Unresolved attribute DOTALL
+- `src/black/strings.py:27` — Unresolved attribute VERBOSE
+- `src/black/strings.py:63` — Unresolved attribute split
+- `src/black/strings.py:153` — Unresolved attribute match
+- `src/black/strings.py:221` — Unresolved attribute search
+- `src/black/strings.py:246` — Unresolved attribute VERBOSE
+- `src/black/strings.py:292` — Unresolved attribute search
+- `src/black/strings.py:386` — Unresolved attribute fstring
+- `src/black/strings.py:386` — Unresolved attribute tstring
+- `src/black/strings.py:413` — Unresolved attribute fstring_replacement_field
+- `src/black/strings.py:414` — Unresolved attribute tstring_replacement_field
+- `src/black/strings.py:419` — Defined later c
+- `src/black/strings.py:419` — Defined later c
+- `src/black/strings.py:419` — Defined later c
+- `src/black/trans.py:300` — Defined later leaf
+- `src/black/trans.py:308` — Unresolved attribute __class__
+- `src/black/trans.py:500` — Unresolved attribute err
+- `src/black/trans.py:527` — Unresolved attribute leaves
+- `src/black/trans.py:547` — Unresolved attribute clone
+- `src/black/trans.py:663` — Defined later span
+- `src/black/trans.py:663` — Defined later span
+- `src/black/trans.py:667` — Defined later expression
+- `src/black/trans.py:907` — Defined later prefix
+- `src/black/trans.py:965` — Unresolved attribute simple_stmt
+- `src/black/trans.py:1000` — Defined later leaf
+- `src/black/trans.py:1018` — Unresolved attribute factor
+- `src/black/trans.py:1180` — Unresolved attribute __class__
+- `src/black/trans.py:1250` — Unresolved variable i
+- `src/black/trans.py:1272` — Unresolved attribute __class__
+- `src/black/trans.py:1303` — Defined later L
+- `src/black/trans.py:1460` — Unresolved attribute listmaker
+- `src/black/trans.py:1461` — Unresolved attribute dictsetmaker
+- `src/black/trans.py:1462` — Unresolved attribute testlist_gexp
+- `src/black/trans.py:1475` — Unresolved attribute atom
+- `src/black/trans.py:1676` — Unresolved attribute __class__
+- `src/black/trans.py:1700` — Defined later prefix_leaf
+- `src/black/trans.py:1756` — Defined later csplit
+- `src/black/trans.py:2115` — Defined later leaf
+- `src/black/trans.py:2129` — Defined later leaf
+- `src/black/trans.py:2142` — Defined later char
+- `src/black/trans.py:2142` — Defined later char
+- `src/black/trans.py:2188` — Unresolved attribute return_stmt
+- `src/black/trans.py:2188` — Unresolved attribute yield_expr
+- `src/black/trans.py:2241` — Unresolved attribute test
+- `src/black/trans.py:2267` — Unresolved attribute assert_stmt
+- `src/black/trans.py:2303` — Unresolved attribute expr_stmt
+- `src/black/trans.py:2303` — Unresolved attribute argument
+- `src/black/trans.py:2303` — Unresolved attribute power
+- `src/black/trans.py:2330` — Unresolved attribute argument
+- `src/black/trans.py:2350` — Unresolved attribute arith_expr
+- `src/black/trans.py:2351` — Unresolved attribute term
+- `src/black/trans.py:2352` — Unresolved attribute power
+- `src/black/trans.py:2353` — Unresolved attribute shift_expr
+- `src/black/trans.py:2354` — Unresolved attribute and_expr
+- `src/black/trans.py:2355` — Unresolved attribute xor_expr
+- `src/black/trans.py:2356` — Unresolved attribute expr
+- `src/black/trans.py:2405` — Unresolved attribute dictsetmaker
+- `src/black/trans.py:2405` — Unresolved attribute lambdef
+- `src/black/trans.py:2468` — Unresolved attribute __class__
+- `src/black/trans.py:2756` — Unresolved attribute __class__
+
+## find_occurrences (rope.contrib.findit)
+
+### `lib2to3_parse` (40 ocurrencias)
+
+- `src/black/__init__.py:73`
+- `src/black/__init__.py:1476`
+- `src/black/parsing.py:77`
+- `src/black/debug.py:7`
+- `src/black/debug.py:54`
+- `tests/util.py:61`
+- `tests/util.py:70`
+- `tests/test_black.py:341`
+- `tests/test_black.py:350`
+- `tests/test_black.py:367`
+- `tests/test_black.py:373`
+- `tests/test_black.py:379`
+- `tests/test_black.py:385`
+- `tests/test_black.py:449`
+- `tests/test_black.py:456`
+- `tests/test_black.py:462`
+- `tests/test_black.py:468`
+- `tests/test_black.py:993`
+- `tests/test_black.py:1004`
+- `tests/test_black.py:1005`
+- `tests/test_black.py:1009`
+- `tests/test_black.py:1012`
+- `tests/test_black.py:1013`
+- `tests/test_black.py:1023`
+- `tests/test_black.py:1036`
+- `tests/test_black.py:1129`
+- `tests/test_black.py:1149`
+- `tests/test_black.py:1157`
+- `tests/test_black.py:1159`
+- `tests/test_black.py:1161`
+- `tests/test_black.py:1163`
+- `tests/test_black.py:1165`
+- `tests/test_black.py:1169`
+- `tests/test_black.py:1171`
+- `tests/test_black.py:1173`
+- `tests/test_black.py:1175`
+- `tests/test_black.py:1177`
+- `tests/test_black.py:1181`
+- `tests/test_black.py:1247`
+- `tests/test_black.py:2530`
+
+### `parse_line_ranges` (8 ocurrencias)
+
+- `src/black/__init__.py:80`
+- `src/black/__init__.py:754`
+- `tests/test_ranges.py:5`
+- `tests/test_ranges.py:19`
+- `tests/test_ranges.py:33`
+- `tests/util.py:19`
+- `tests/util.py:294`
+- `src/black/ranges.py:22`
+
+### `is_changed` (2 ocurrencias)
+
+- `src/black/cache.py:109`
+- `src/black/cache.py:134`
+
+### `StringTransformer` (4 ocurrencias)
+
+- `src/black/trans.py:218`
+- `src/black/trans.py:414`
+- `src/black/trans.py:922`
+- `src/black/trans.py:1123`
+
+### `dump_to_file` (19 ocurrencias)
+
+- `src/black/__init__.py:68`
+- `src/black/__init__.py:1420`
+- `src/black/__init__.py:1897`
+- `src/black/__init__.py:1907`
+- `src/black/__init__.py:1931`
+- `src/black/output.py:126`
+- `tests/test_black.py:227`
+- `tests/test_black.py:244`
+- `tests/test_black.py:390`
+- `tests/test_black.py:404`
+- `tests/test_black.py:419`
+- `tests/test_black.py:430`
+- `tests/test_black.py:487`
+- `tests/test_black.py:555`
+- `tests/test_black.py:571`
+- `tests/test_black.py:1204`
+- `tests/test_black.py:1827`
+- `tests/test_black.py:1829`
+- `tests/test_black.py:2372`
+
+### `visit_suite` (1 ocurrencias)
+
+- `src/black/linegen.py:324`
+
+### `wrap_comprehension_in` (3 ocurrencias)
+
+- `src/black/mode.py:263`
+- `src/black/linegen.py:803`
+- `tests/test_black.py:3561`
+
+## find_definition (rope.contrib.findit)
+
+Desde `src/black/__init__.py` (`src_node = lib2to3_parse(...)`) Rope resuelve la definición en `src/black/parsing.py:77`.

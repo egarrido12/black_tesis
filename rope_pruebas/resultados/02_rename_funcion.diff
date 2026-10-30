@@ -1,0 +1,286 @@
+Renaming <lib2to3_parse> to <parse_to_tree> - today 10:14:55 :
+
+
+--- a/src/black/__init__.py
++++ b/src/black/__init__.py
+@@ -70,7 +70,7 @@
+     ASTSafetyError,
+     InvalidInput,
+     SourceASTParseError,
+-    lib2to3_parse,
++    parse_to_tree,
+     parse_ast,
+     stringify_ast,
+ )
+@@ -1473,7 +1473,7 @@
+         src_contents.encode("utf-8"), mode, encoding_overwrite="utf-8"
+     )
+ 
+-    src_node = lib2to3_parse(
++    src_node = parse_to_tree(
+         normalized_contents.lstrip(), target_versions=mode.target_versions
+     )
+ 
+
+--- a/src/black/parsing.py
++++ b/src/black/parsing.py
+@@ -74,7 +74,7 @@
+     return grammars
+ 
+ 
+-def lib2to3_parse(
++def parse_to_tree(
+     src_txt: str, target_versions: Collection[TargetVersion] = ()
+ ) -> Node:
+     """Given a string with source, return the lib2to3 Node."""
+
+--- a/src/black/debug.py
++++ b/src/black/debug.py
+@@ -4,7 +4,7 @@
+ 
+ from black.nodes import Visitor
+ from black.output import out
+-from black.parsing import lib2to3_parse
++from black.parsing import parse_to_tree
+ from blib2to3.pgen2 import token
+ from blib2to3.pytree import Leaf, Node, type_repr
+ 
+@@ -51,5 +51,5 @@
+         """
+         v: DebugVisitor[None] = DebugVisitor()
+         if isinstance(code, str):
+-            code = lib2to3_parse(code)
++            code = parse_to_tree(code)
+         list(v.visit(code))
+
+--- a/tests/util.py
++++ b/tests/util.py
+@@ -58,7 +58,7 @@
+         if conftest.PRINT_FULL_TREE:
+             out("Expected tree:", fg="green")
+         try:
+-            exp_node = black.lib2to3_parse(expected)
++            exp_node = black.parse_to_tree(expected)
+             bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+             list(bdv.visit(exp_node))
+             expected_out = "\n".join(bdv.list_output)
+@@ -67,7 +67,7 @@
+         if conftest.PRINT_FULL_TREE:
+             out("Actual tree:", fg="red")
+         try:
+-            exp_node = black.lib2to3_parse(actual)
++            exp_node = black.parse_to_tree(actual)
+             bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+             list(bdv.visit(exp_node))
+             actual_out = "\n".join(bdv.list_output)
+
+--- a/tests/test_black.py
++++ b/tests/test_black.py
+@@ -338,7 +338,7 @@
+ 
+     def test_pep_572_version_detection(self) -> None:
+         source, _ = read_data("cases", "pep_572")
+-        root = black.lib2to3_parse(source)
++        root = black.parse_to_tree(source)
+         features = black.get_features_used(root)
+         self.assertIn(black.Feature.ASSIGNMENT_EXPRESSIONS, features)
+         versions = black.detect_target_versions(root)
+@@ -347,7 +347,7 @@
+     def test_pep_695_version_detection(self) -> None:
+         for file in ("type_aliases", "type_params"):
+             source, _ = read_data("cases", file)
+-            root = black.lib2to3_parse(source)
++            root = black.parse_to_tree(source)
+             features = black.get_features_used(root)
+             self.assertIn(black.Feature.TYPE_PARAMS, features)
+             versions = black.detect_target_versions(root)
+@@ -364,25 +364,25 @@
+             "type X[**P=int]=int",
+         ]
+         for sample in samples:
+-            root = black.lib2to3_parse(sample)
++            root = black.parse_to_tree(sample)
+             features = black.get_features_used(root)
+             self.assertIn(black.Feature.TYPE_PARAM_DEFAULTS, features)
+ 
+     def test_python315_version_detection(self) -> None:
+         source, _ = read_data("cases", "python315")
+-        root = black.lib2to3_parse(source)
++        root = black.parse_to_tree(source)
+         features = black.get_features_used(root)
+         self.assertIn(black.Feature.LAZY_IMPORTS, features)
+         self.assertIn(black.Feature.UNPACKING_IN_COMPREHENSIONS, features)
+         self.assertNotIn(
+             black.Feature.LAZY_IMPORTS,
+-            black.get_features_used(black.lib2to3_parse("lazy = 1\n")),
++            black.get_features_used(black.parse_to_tree("lazy = 1\n")),
+         )
+         versions = black.detect_target_versions(root)
+         self.assertIn(black.TargetVersion.PY315, versions)
+         self.assertIn(
+             black.Feature.UNPACKING_IN_COMPREHENSIONS,
+-            black.get_features_used(black.lib2to3_parse("f(*x for x in y)\n")),
++            black.get_features_used(black.parse_to_tree("f(*x for x in y)\n")),
+         )
+ 
+     def test_expression_ff(self) -> None:
+@@ -446,26 +446,26 @@
+ 
+     def test_detect_pos_only_arguments(self) -> None:
+         source, _ = read_data("cases", "pep_570")
+-        root = black.lib2to3_parse(source)
++        root = black.parse_to_tree(source)
+         features = black.get_features_used(root)
+         self.assertIn(black.Feature.POS_ONLY_ARGUMENTS, features)
+         versions = black.detect_target_versions(root)
+         self.assertIn(black.TargetVersion.PY38, versions)
+ 
+     def test_detect_debug_f_strings(self) -> None:
+-        root = black.lib2to3_parse("""f"{x=}" """)
++        root = black.parse_to_tree("""f"{x=}" """)
+         features = black.get_features_used(root)
+         self.assertIn(black.Feature.DEBUG_F_STRINGS, features)
+         versions = black.detect_target_versions(root)
+         self.assertIn(black.TargetVersion.PY38, versions)
+ 
+-        root = black.lib2to3_parse(
++        root = black.parse_to_tree(
+             """f"{x}"\nf'{"="}'\nf'{(x:=5)}'\nf'{f(a="3=")}'\nf'{x:=10}'\n"""
+         )
+         features = black.get_features_used(root)
+         self.assertNotIn(black.Feature.DEBUG_F_STRINGS, features)
+ 
+-        root = black.lib2to3_parse(
++        root = black.parse_to_tree(
+             """f"heard a rumour that { f'{1+1=}' } ... seems like it could be true" """
+         )
+         features = black.get_features_used(root)
+@@ -990,7 +990,7 @@
+ 
+     def test_lib2to3_parse(self) -> None:
+         with self.assertRaises(black.InvalidInput) as exc_info:
+-            black.lib2to3_parse("invalid syntax")
++            black.parse_to_tree("invalid syntax")
+         error = exc_info.exception
+         restored_error = pickle.loads(pickle.dumps(error))
+         self.assertEqual((error.lineno, error.column), (1, 8))
+@@ -1001,16 +1001,16 @@
+         )
+ 
+         straddling = "x + y"
+-        black.lib2to3_parse(straddling)
+-        black.lib2to3_parse(straddling, {TargetVersion.PY36})
++        black.parse_to_tree(straddling)
++        black.parse_to_tree(straddling, {TargetVersion.PY36})
+ 
+         py2_only = "print x"
+         with self.assertRaises(black.InvalidInput):
+-            black.lib2to3_parse(py2_only, {TargetVersion.PY36})
++            black.parse_to_tree(py2_only, {TargetVersion.PY36})
+ 
+         py3_only = "exec(x, end=y)"
+-        black.lib2to3_parse(py3_only)
+-        black.lib2to3_parse(py3_only, {TargetVersion.PY36})
++        black.parse_to_tree(py3_only)
++        black.parse_to_tree(py3_only, {TargetVersion.PY36})
+ 
+     def test_get_features_used_decorator(self) -> None:
+         # Test the feature detection of new decorator syntax
+@@ -1020,7 +1020,7 @@
+         simples, relaxed = read_data("miscellaneous", "decorators")
+         # skip explanation comments at the top of the file
+         for simple_test in simples.split("##")[1:]:
+-            node = black.lib2to3_parse(simple_test)
++            node = black.parse_to_tree(simple_test)
+             decorator = str(node.children[0].children[0]).strip()
+             self.assertNotIn(
+                 Feature.RELAXED_DECORATORS,
+@@ -1033,7 +1033,7 @@
+             )
+         # skip the '# output' comment at the top of the output part
+         for relaxed_test in relaxed.split("##")[1:]:
+-            node = black.lib2to3_parse(relaxed_test)
++            node = black.parse_to_tree(relaxed_test)
+             decorator = str(node.children[0].children[0]).strip()
+             self.assertIn(
+                 Feature.RELAXED_DECORATORS,
+@@ -1126,7 +1126,7 @@
+         )
+ 
+     def check_features_used(self, source: str, expected: set[Feature]) -> None:
+-        node = black.lib2to3_parse(source)
++        node = black.parse_to_tree(source)
+         actual = black.get_features_used(node)
+         msg = f"Expected {expected} but got {actual} for {source!r}"
+         try:
+@@ -1146,7 +1146,7 @@
+             ("from __future__ import x, y", set()),
+         ]:
+             with self.subTest(src=src, features=sorted(f.value for f in features)):
+-                node = black.lib2to3_parse(src)
++                node = black.parse_to_tree(src)
+                 future_imports = black.get_future_imports(node)
+                 self.assertEqual(
+                     black.get_features_used(node, future_imports=future_imports),
+@@ -1154,31 +1154,31 @@
+                 )
+ 
+     def test_get_future_imports(self) -> None:
+-        node = black.lib2to3_parse("\n")
++        node = black.parse_to_tree("\n")
+         self.assertEqual(set(), black.get_future_imports(node))
+-        node = black.lib2to3_parse("from __future__ import black\n")
++        node = black.parse_to_tree("from __future__ import black\n")
+         self.assertEqual({"black"}, black.get_future_imports(node))
+-        node = black.lib2to3_parse("from __future__ import multiple, imports\n")
++        node = black.parse_to_tree("from __future__ import multiple, imports\n")
+         self.assertEqual({"multiple", "imports"}, black.get_future_imports(node))
+-        node = black.lib2to3_parse("from __future__ import (parenthesized, imports)\n")
++        node = black.parse_to_tree("from __future__ import (parenthesized, imports)\n")
+         self.assertEqual({"parenthesized", "imports"}, black.get_future_imports(node))
+-        node = black.lib2to3_parse(
++        node = black.parse_to_tree(
+             "from __future__ import multiple\nfrom __future__ import imports\n"
+         )
+         self.assertEqual({"multiple", "imports"}, black.get_future_imports(node))
+-        node = black.lib2to3_parse("# comment\nfrom __future__ import black\n")
++        node = black.parse_to_tree("# comment\nfrom __future__ import black\n")
+         self.assertEqual({"black"}, black.get_future_imports(node))
+-        node = black.lib2to3_parse('"""docstring"""\nfrom __future__ import black\n')
++        node = black.parse_to_tree('"""docstring"""\nfrom __future__ import black\n')
+         self.assertEqual({"black"}, black.get_future_imports(node))
+-        node = black.lib2to3_parse("some(other, code)\nfrom __future__ import black\n")
++        node = black.parse_to_tree("some(other, code)\nfrom __future__ import black\n")
+         self.assertEqual(set(), black.get_future_imports(node))
+-        node = black.lib2to3_parse("from some.module import black\n")
++        node = black.parse_to_tree("from some.module import black\n")
+         self.assertEqual(set(), black.get_future_imports(node))
+-        node = black.lib2to3_parse(
++        node = black.parse_to_tree(
+             "from __future__ import unicode_literals as _unicode_literals"
+         )
+         self.assertEqual({"unicode_literals"}, black.get_future_imports(node))
+-        node = black.lib2to3_parse(
++        node = black.parse_to_tree(
+             "from __future__ import unicode_literals as _lol, print"
+         )
+         self.assertEqual({"unicode_literals", "print"}, black.get_future_imports(node))
+@@ -1244,7 +1244,7 @@
+         self.assertEqual("\r\n", actual)
+ 
+     def test_endmarker(self) -> None:
+-        n = black.lib2to3_parse("\n")
++        n = black.parse_to_tree("\n")
+         self.assertEqual(n.type, black.syms.file_input)
+         self.assertEqual(len(n.children), 1)
+         self.assertEqual(n.children[0].type, black.token.ENDMARKER)
+@@ -2527,7 +2527,7 @@
+         Test that an unexpected EOF SyntaxError is nicely presented.
+         """
+         with pytest.raises(black.parsing.InvalidInput) as exc_info:
+-            black.lib2to3_parse("print(", {})
++            black.parse_to_tree("print(", {})
+ 
+         exc_info.match(
+             re.escape(
+
