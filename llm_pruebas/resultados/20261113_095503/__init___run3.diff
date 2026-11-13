@@ -1,0 +1,1703 @@
+--- a/src/black/__init__.py
++++ b/src/black/__init__.py
+@@ -92,6 +92,21 @@
+ Encoding = str
+ NewLine = str
+ 
++_ERROR_BANNER = "Oh no! 💥 💔 💥"
++
++# Features that influence how lines are generated / split; only those supported by
++# every target version are enabled.
++_LINE_GENERATION_CANDIDATES = frozenset({
++    Feature.PARENTHESIZED_CONTEXT_MANAGERS,
++    Feature.UNPARENTHESIZED_EXCEPT_TYPES,
++    Feature.T_STRINGS,
++    Feature.UNPARENTHESIZED_WALRUS_IN_SETS,
++})
++_SPLIT_LINE_CANDIDATES = frozenset({
++    Feature.TRAILING_COMMA_IN_CALL,
++    Feature.TRAILING_COMMA_IN_DEF,
++})
++
+ 
+ class WriteBack(Enum):
+     NO = 0
+@@ -117,6 +132,33 @@
+ FileMode = Mode
+ 
+ 
++def _require_string_option(config: dict[str, Any], key: str) -> None:
++    """Raise a usage error if the config value for `key` is set but not a string."""
++    value = config.get(key)
++    if value is not None and not isinstance(value, str):
++        option_name = key.replace("_", "-")
++        raise click.BadOptionUsage(
++            option_name, f"Config key {option_name} must be a string"
++        )
++
++
++def _validate_pyproject_option_types(config: dict[str, Any]) -> None:
++    """Validate the types of the options that Click needs to receive in a given form."""
++    target_version = config.get("target_version")
++    if target_version is not None and not isinstance(target_version, list):
++        raise click.BadOptionUsage(
++            "target-version", "Config key target-version must be a list"
++        )
++
++    for key in ("exclude", "include", "extend_exclude", "force_exclude"):
++        _require_string_option(config, key)
++
++    if config.get("line_ranges") is not None:
++        raise click.BadOptionUsage(
++            "line-ranges", "Cannot use line-ranges in the pyproject.toml file."
++        )
++
++
+ def read_pyproject_toml(
+     ctx: click.Context, param: click.Parameter | None, value: str | None
+ ) -> str | None:
+@@ -141,47 +183,16 @@
+ 
+     if not config:
+         return None
+-    else:
+-        spellcheck_pyproject_toml_keys(ctx, list(config), value)
+-        # Sanitize the values to be Click friendly. For more information please see:
+-        # https://github.com/psf/black/issues/1458
+-        # https://github.com/pallets/click/issues/1567
+-        config = {
+-            k: str(v) if not isinstance(v, (list, dict)) else v
+-            for k, v in config.items()
+-        }
+-
+-    target_version = config.get("target_version")
+-    if target_version is not None and not isinstance(target_version, list):
+-        raise click.BadOptionUsage(
+-            "target-version", "Config key target-version must be a list"
+-        )
+-
+-    exclude = config.get("exclude")
+-    if exclude is not None and not isinstance(exclude, str):
+-        raise click.BadOptionUsage("exclude", "Config key exclude must be a string")
+-
+-    include = config.get("include")
+-    if include is not None and not isinstance(include, str):
+-        raise click.BadOptionUsage("include", "Config key include must be a string")
+-
+-    extend_exclude = config.get("extend_exclude")
+-    if extend_exclude is not None and not isinstance(extend_exclude, str):
+-        raise click.BadOptionUsage(
+-            "extend-exclude", "Config key extend-exclude must be a string"
+-        )
+-
+-    force_exclude = config.get("force_exclude")
+-    if force_exclude is not None and not isinstance(force_exclude, str):
+-        raise click.BadOptionUsage(
+-            "force-exclude", "Config key force-exclude must be a string"
+-        )
+-
+-    line_ranges = config.get("line_ranges")
+-    if line_ranges is not None:
+-        raise click.BadOptionUsage(
+-            "line-ranges", "Cannot use line-ranges in the pyproject.toml file."
+-        )
++
++    spellcheck_pyproject_toml_keys(ctx, list(config), value)
++    # Sanitize the values to be Click friendly. For more information please see:
++    # https://github.com/psf/black/issues/1458
++    # https://github.com/pallets/click/issues/1567
++    config = {
++        k: str(v) if not isinstance(v, (list, dict)) else v for k, v in config.items()
++    }
++
++    _validate_pyproject_option_types(config)
+ 
+     default_map: dict[str, Any] = {}
+     if ctx.default_map:
+@@ -195,9 +206,10 @@
+ def spellcheck_pyproject_toml_keys(
+     ctx: click.Context, config_keys: list[str], config_file_path: str
+ ) -> None:
+-    invalid_keys: list[str] = []
+     available_config_options = {param.name for param in ctx.command.params}
+-    invalid_keys = [key for key in config_keys if key not in available_config_options]
++    invalid_keys: list[str] = [
++        key for key in config_keys if key not in available_config_options
++    ]
+     if invalid_keys:
+         keys_str = ", ".join(map(repr, invalid_keys))
+         out(
+@@ -271,6 +283,250 @@
+         return re_compile_maybe_verbose(value) if value is not None else None
+     except re.error as e:
+         raise click.BadParameter(f"Not a valid regular expression: {e}") from None
++
++
++def _exit_on_unsupported_python(ctx: click.Context) -> None:
++    assert sys.version_info >= (3, 10), "Black requires Python 3.10+"
++    if sys.version_info[:3] == (3, 12, 5):
++        out(
++            "Python 3.12.5 has a memory safety issue that can cause Black's "
++            "AST safety checks to fail. "
++            "Please upgrade to Python 3.12.6 or downgrade to Python 3.12.4"
++        )
++        ctx.exit(1)
++
++
++def _validate_cli_arguments(
++    ctx: click.Context,
++    *,
++    src: tuple[str, ...],
++    code: str | None,
++    preview: bool,
++    unstable: bool,
++    enable_unstable_feature: list[Preview],
++) -> None:
++    """Exit with an error if the combination of arguments is invalid."""
++    if src and code is not None:
++        out(
++            main.get_usage(ctx)
++            + "\n\n'SRC' and 'code' cannot be passed simultaneously."
++        )
++        ctx.exit(1)
++    if not src and code is None:
++        out(main.get_usage(ctx) + "\n\nOne of 'SRC' or 'code' is required.")
++        ctx.exit(1)
++
++    # It doesn't do anything if --unstable is also passed, so just allow it.
++    if enable_unstable_feature and not (preview or unstable):
++        out(
++            main.get_usage(ctx)
++            + "\n\n'--enable-unstable-feature' requires '--preview'."
++        )
++        ctx.exit(1)
++
++
++def _warn_about_source_locations(
++    ctx: click.Context, *, src: tuple[str, ...], root: Path | None, quiet: bool
++) -> None:
++    """Emit warnings about sources that are risky or have no project root."""
++    for source in src:
++        if source != "-" and is_filesystem_root(Path(source)):
++            err(
++                "Warning: formatting the filesystem root can affect files "
++                "outside your project."
++            )
++            break
++
++    if (
++        root is None
++        and not quiet
++        and ctx.get_parameter_source("config") != ParameterSource.COMMANDLINE
++    ):
++        err(
++            "No project root could be identified: the given sources share no"
++            " common parent directory (for example, they are on different"
++            " drives). Black will use its default configuration. Pass"
++            " --config to select a configuration file or --quiet to silence"
++            " this warning."
++        )
++
++
++def _echo_verbose_configuration(
++    ctx: click.Context, *, root: Path | None, method: str | None, config: str | None
++) -> None:
++    """Describe the project root and the configuration file in use."""
++    if root:
++        out(
++            f"Identified `{root}` as project root containing a {method}.",
++            fg="blue",
++        )
++
++    if config:
++        config_source = ctx.get_parameter_source("config")
++        user_level_config = str(find_user_pyproject_toml())
++        if config == user_level_config:
++            out(
++                "Using configuration from user-level config at "
++                f"'{user_level_config}'.",
++                fg="blue",
++            )
++        elif config_source in (
++            ParameterSource.DEFAULT,
++            ParameterSource.DEFAULT_MAP,
++        ):
++            out("Using configuration from project root.", fg="blue")
++        else:
++            out(f"Using configuration in '{config}'.", fg="blue")
++        if ctx.default_map:
++            for param, value in ctx.default_map.items():
++                out(f"{param}: {value}")
++
++
++def _required_version_mismatch(required_version: str | None) -> bool:
++    return bool(
++        required_version
++        and required_version != __version__
++        and required_version != __version__.split(".")[0]
++    )
++
++
++def _resolve_cache_dir(
++    ctx: click.Context, cache_dir: Path | None, config: str | None
++) -> Path:
++    if cache_dir is None:
++        return cache_module.CACHE_DIR
++    if (
++        not cache_dir.is_absolute()
++        and ctx.get_parameter_source("cache_dir") == ParameterSource.DEFAULT_MAP
++        and config is not None
++    ):
++        cache_dir = Path(config).resolve().parent / cache_dir
++    return get_cache_dir(cache_dir)
++
++
++def _try_create_cache_dir(cache_dir: Path, *, verbose: bool) -> bool:
++    """Create `cache_dir`. Return False (disabling the cache) if that fails."""
++    try:
++        cache_dir.mkdir(parents=True, exist_ok=True)
++    except OSError as e:
++        if verbose:
++            out(
++                f"Unable to use cache directory `{cache_dir}`: {e}. "
++                "Disabling the cache.",
++                fg="blue",
++            )
++        return False
++    return True
++
++
++def _parse_line_ranges_or_exit(
++    ctx: click.Context, line_ranges: Sequence[str], *, ipynb: bool
++) -> list[tuple[int, int]]:
++    if not line_ranges:
++        return []
++
++    if ipynb:
++        err("Cannot use --line-ranges with ipynb files.")
++        ctx.exit(1)
++
++    try:
++        return parse_line_ranges(line_ranges)
++    except ValueError as e:
++        err(str(e))
++        ctx.exit(1)
++
++
++def _write_github_outputs(report: Report) -> None:
++    if "GITHUB_OUTPUT" in os.environ:
++        report.write_github_outputs(Path(os.environ["GITHUB_OUTPUT"]))
++
++
++def _reformat_paths(
++    ctx: click.Context,
++    *,
++    root: Path | None,
++    src: tuple[str, ...],
++    fast: bool,
++    write_back: WriteBack,
++    mode: Mode,
++    report: Report,
++    lines: list[tuple[int, int]],
++    include: Pattern[str],
++    exclude: Pattern[str] | None,
++    extend_exclude: Pattern[str] | None,
++    force_exclude: Pattern[str] | None,
++    stdin_filename: str | None,
++    workers: int | None,
++    quiet: bool,
++    verbose: bool,
++    no_cache: bool,
++    cache_dir: Path | None,
++) -> None:
++    """Collect the files under `src` and format them (one by one or in parallel)."""
++    try:
++        sources = get_sources(
++            root=root,
++            src=src,
++            quiet=quiet,
++            verbose=verbose,
++            include=include,
++            exclude=exclude,
++            extend_exclude=extend_exclude,
++            force_exclude=force_exclude,
++            report=report,
++            stdin_filename=stdin_filename,
++        )
++    except GitIgnorePatternError:
++        ctx.exit(1)
++
++    if not sources:
++        if verbose or not quiet:
++            out("No Python files are present to be formatted. Nothing to do 😴")
++        if "-" in src and write_back is WriteBack.YES:
++            _echo_stdin_unchanged()
++        _write_github_outputs(report)
++        ctx.exit(0)
++
++    if len(sources) == 1:
++        reformat_one(
++            src=sources.pop(),
++            fast=fast,
++            write_back=write_back,
++            mode=mode,
++            report=report,
++            lines=lines,
++            no_cache=no_cache,
++            cache_dir=cache_dir,
++        )
++    else:
++        from black.concurrency import reformat_many
++
++        if lines:
++            err("Cannot use --line-ranges to format multiple files.")
++            ctx.exit(1)
++        reformat_many(
++            sources=sources,
++            fast=fast,
++            write_back=write_back,
++            mode=mode,
++            report=report,
++            workers=workers,
++            no_cache=no_cache,
++            cache_dir=cache_dir,
++        )
++
++
++def _print_summary(
++    report: Report, *, code: str | None, quiet: bool, verbose: bool
++) -> None:
++    if not (verbose or not quiet):
++        return
++
++    if code is None and (verbose or report.change_count or report.failure_count):
++        out()
++    out(_ERROR_BANNER if report.return_code else "All done! ✨ 🍰 ✨")
++    if code is None:
++        click.echo(str(report), err=True)
+ 
+ 
+ @click.command(
+@@ -596,32 +852,15 @@
+     """The uncompromising code formatter."""
+     ctx.ensure_object(dict)
+ 
+-    assert sys.version_info >= (3, 10), "Black requires Python 3.10+"
+-    if sys.version_info[:3] == (3, 12, 5):
+-        out(
+-            "Python 3.12.5 has a memory safety issue that can cause Black's "
+-            "AST safety checks to fail. "
+-            "Please upgrade to Python 3.12.6 or downgrade to Python 3.12.4"
+-        )
+-        ctx.exit(1)
+-
+-    if src and code is not None:
+-        out(
+-            main.get_usage(ctx)
+-            + "\n\n'SRC' and 'code' cannot be passed simultaneously."
+-        )
+-        ctx.exit(1)
+-    if not src and code is None:
+-        out(main.get_usage(ctx) + "\n\nOne of 'SRC' or 'code' is required.")
+-        ctx.exit(1)
+-
+-    # It doesn't do anything if --unstable is also passed, so just allow it.
+-    if enable_unstable_feature and not (preview or unstable):
+-        out(
+-            main.get_usage(ctx)
+-            + "\n\n'--enable-unstable-feature' requires '--preview'."
+-        )
+-        ctx.exit(1)
++    _exit_on_unsupported_python(ctx)
++    _validate_cli_arguments(
++        ctx,
++        src=src,
++        code=code,
++        preview=preview,
++        unstable=unstable,
++        enable_unstable_feature=enable_unstable_feature,
++    )
+ 
+     root, method = (
+         find_project_root(src, stdin_filename) if code is None else (None, None)
+@@ -629,64 +868,15 @@
+     ctx.obj["root"] = root
+ 
+     if code is None:
+-        for source in src:
+-            if source != "-" and is_filesystem_root(Path(source)):
+-                err(
+-                    "Warning: formatting the filesystem root can affect files "
+-                    "outside your project."
+-                )
+-                break
+-
+-    if (
+-        code is None
+-        and root is None
+-        and not quiet
+-        and ctx.get_parameter_source("config") != ParameterSource.COMMANDLINE
+-    ):
++        _warn_about_source_locations(ctx, src=src, root=root, quiet=quiet)
++
++    if verbose:
++        _echo_verbose_configuration(ctx, root=root, method=method, config=config)
++
++    if _required_version_mismatch(required_version):
+         err(
+-            "No project root could be identified: the given sources share no"
+-            " common parent directory (for example, they are on different"
+-            " drives). Black will use its default configuration. Pass"
+-            " --config to select a configuration file or --quiet to silence"
+-            " this warning."
+-        )
+-
+-    if verbose:
+-        if root:
+-            out(
+-                f"Identified `{root}` as project root containing a {method}.",
+-                fg="blue",
+-            )
+-
+-        if config:
+-            config_source = ctx.get_parameter_source("config")
+-            user_level_config = str(find_user_pyproject_toml())
+-            if config == user_level_config:
+-                out(
+-                    "Using configuration from user-level config at "
+-                    f"'{user_level_config}'.",
+-                    fg="blue",
+-                )
+-            elif config_source in (
+-                ParameterSource.DEFAULT,
+-                ParameterSource.DEFAULT_MAP,
+-            ):
+-                out("Using configuration from project root.", fg="blue")
+-            else:
+-                out(f"Using configuration in '{config}'.", fg="blue")
+-            if ctx.default_map:
+-                for param, value in ctx.default_map.items():
+-                    out(f"{param}: {value}")
+-
+-    error_msg = "Oh no! 💥 💔 💥"
+-    if (
+-        required_version
+-        and required_version != __version__
+-        and required_version != __version__.split(".")[0]
+-    ):
+-        err(
+-            f"{error_msg} The required version `{required_version}` does not match"
+-            f" the running version `{__version__}`!"
++            f"{_ERROR_BANNER} The required version `{required_version}` does not"
++            f" match the running version `{__version__}`!"
+         )
+         ctx.exit(1)
+     if ipynb and pyi:
+@@ -694,34 +884,14 @@
+         ctx.exit(1)
+ 
+     write_back = WriteBack.from_configuration(check=check, diff=diff, color=color)
+-    if cache_dir is None:
+-        cache_dir = cache_module.CACHE_DIR
+-    else:
+-        if (
+-            not cache_dir.is_absolute()
+-            and ctx.get_parameter_source("cache_dir") == ParameterSource.DEFAULT_MAP
+-            and config is not None
+-        ):
+-            cache_dir = Path(config).resolve().parent / cache_dir
+-        cache_dir = get_cache_dir(cache_dir)
++    cache_dir = _resolve_cache_dir(ctx, cache_dir, config)
+     if not no_cache:
+-        try:
+-            cache_dir.mkdir(parents=True, exist_ok=True)
+-        except OSError as e:
+-            no_cache = True
+-            if verbose:
+-                out(
+-                    f"Unable to use cache directory `{cache_dir}`: {e}. "
+-                    "Disabling the cache.",
+-                    fg="blue",
+-                )
++        no_cache = not _try_create_cache_dir(cache_dir, verbose=verbose)
+     if not no_cache:
+         pygram.initialize(cache_dir)
+-    if target_version:
+-        versions = set(target_version)
+-    else:
+-        # We'll autodetect later.
+-        versions = set()
++
++    # An empty set means target versions are autodetected later.
++    versions = set(target_version)
+     mode = Mode(
+         target_versions=versions,
+         line_length=line_length,
+@@ -744,17 +914,7 @@
+             fg="yellow",
+         )
+ 
+-    lines: list[tuple[int, int]] = []
+-    if line_ranges:
+-        if ipynb:
+-            err("Cannot use --line-ranges with ipynb files.")
+-            ctx.exit(1)
+-
+-        try:
+-            lines = parse_line_ranges(line_ranges)
+-        except ValueError as e:
+-            err(str(e))
+-            ctx.exit(1)
++    lines = _parse_line_ranges_or_exit(ctx, line_ranges, ipynb=ipynb)
+ 
+     if code is not None:
+         # Run in quiet mode by default with -c; the extra output isn't useful.
+@@ -773,68 +933,101 @@
+             lines=lines,
+         )
+     else:
+-        try:
+-            sources = get_sources(
+-                root=root,
+-                src=src,
+-                quiet=quiet,
+-                verbose=verbose,
+-                include=include,
+-                exclude=exclude,
+-                extend_exclude=extend_exclude,
+-                force_exclude=force_exclude,
+-                report=report,
+-                stdin_filename=stdin_filename,
++        _reformat_paths(
++            ctx,
++            root=root,
++            src=src,
++            fast=fast,
++            write_back=write_back,
++            mode=mode,
++            report=report,
++            lines=lines,
++            include=include,
++            exclude=exclude,
++            extend_exclude=extend_exclude,
++            force_exclude=force_exclude,
++            stdin_filename=stdin_filename,
++            workers=workers,
++            quiet=quiet,
++            verbose=verbose,
++            no_cache=no_cache,
++            cache_dir=cache_dir,
++        )
++
++    _print_summary(report, code=code, quiet=quiet, verbose=verbose)
++    _write_github_outputs(report)
++    ctx.exit(report.return_code)
++
++
++def _resolve_source_path(
++    s: str,
++    *,
++    stdin_filename: str | None,
++    force_exclude: Pattern[str] | None,
++    report: "Report",
++) -> tuple[Path, bool] | None:
++    """Return `(path, is_stdin)` for the command line argument `s`.
++
++    Return None if the path is excluded by `--force-exclude`.
++    """
++    if s == "-" and stdin_filename:
++        path = Path(stdin_filename)
++        if path_is_excluded(stdin_filename, force_exclude):
++            report.path_ignored(
++                path,
++                "--stdin-filename matches the --force-exclude regular expression",
+             )
+-        except GitIgnorePatternError:
+-            ctx.exit(1)
+-
+-        if not sources:
+-            if verbose or not quiet:
+-                out("No Python files are present to be formatted. Nothing to do 😴")
+-            if "-" in src and write_back is WriteBack.YES:
+-                _echo_stdin_unchanged()
+-            if "GITHUB_OUTPUT" in os.environ:
+-                report.write_github_outputs(Path(os.environ["GITHUB_OUTPUT"]))
+-            ctx.exit(0)
+-
+-        if len(sources) == 1:
+-            reformat_one(
+-                src=sources.pop(),
+-                fast=fast,
+-                write_back=write_back,
+-                mode=mode,
+-                report=report,
+-                lines=lines,
+-                no_cache=no_cache,
+-                cache_dir=cache_dir,
+-            )
+-        else:
+-            from black.concurrency import reformat_many
+-
+-            if lines:
+-                err("Cannot use --line-ranges to format multiple files.")
+-                ctx.exit(1)
+-            reformat_many(
+-                sources=sources,
+-                fast=fast,
+-                write_back=write_back,
+-                mode=mode,
+-                report=report,
+-                workers=workers,
+-                no_cache=no_cache,
+-                cache_dir=cache_dir,
+-            )
+-
+-    if verbose or not quiet:
+-        if code is None and (verbose or report.change_count or report.failure_count):
+-            out()
+-        out(error_msg if report.return_code else "All done! ✨ 🍰 ✨")
+-        if code is None:
+-            click.echo(str(report), err=True)
+-    if "GITHUB_OUTPUT" in os.environ:
+-        report.write_github_outputs(Path(os.environ["GITHUB_OUTPUT"]))
+-    ctx.exit(report.return_code)
++            return None
++        return path, True
++    return Path(s), False
++
++
++def _source_root(root: Path | None, path: Path) -> Path:
++    """Return the root used for `path`.
++
++    When the sources share no common parent, there is no project root. Fall back
++    to a per-source root so that exclusion, symlink, and gitignore handling still
++    work for each source independently.
++    """
++    if root is not None:
++        return root
++    return path.resolve() if path.is_dir() else path.resolve().parent
++
++
++def _file_source_to_add(
++    path: Path,
++    *,
++    is_stdin: bool,
++    src_root: Path,
++    force_exclude: Pattern[str] | None,
++    report: "Report",
++    verbose: bool,
++    quiet: bool,
++) -> Path | None:
++    """Return the path to add to the sources for a file, or None to skip it."""
++    if resolves_outside_root_or_cannot_stat(path, src_root, report):
++        if verbose:
++            out(f'Skipping invalid source: "{path}"', fg="red")
++        return None
++
++    root_relative_path = "/" + best_effort_relative_path(path, src_root).as_posix()
++
++    # Hard-exclude any files that matches the `--force-exclude` regex.
++    if path_is_excluded(root_relative_path, force_exclude):
++        report.path_ignored(path, "matches the --force-exclude regular expression")
++        return None
++
++    if is_stdin:
++        path = Path(f"{STDIN_PLACEHOLDER}{path}")
++
++    if path.suffix == ".ipynb" and not jupyter_dependencies_are_installed(
++        warn=verbose or not quiet
++    ):
++        return None
++
++    if verbose:
++        out(f'Found input source: "{path}"', fg="blue")
++    return path
+ 
+ 
+ def get_sources(
+@@ -862,55 +1055,31 @@
+     root_gitignore = get_gitignore(root)
+ 
+     for s in src:
+-        if s == "-" and stdin_filename:
+-            path = Path(stdin_filename)
+-            if path_is_excluded(stdin_filename, force_exclude):
+-                report.path_ignored(
+-                    path,
+-                    "--stdin-filename matches the --force-exclude regular expression",
+-                )
+-                continue
+-            is_stdin = True
+-        else:
+-            path = Path(s)
+-            is_stdin = False
+-
+-        # When the sources share no common parent, there is no project root.
+-        # Fall back to a per-source root so that exclusion, symlink, and
+-        # gitignore handling still work for each source independently.
+-        if root is None:
+-            src_root = path.resolve() if path.is_dir() else path.resolve().parent
+-        else:
+-            src_root = root
++        resolved = _resolve_source_path(
++            s,
++            stdin_filename=stdin_filename,
++            force_exclude=force_exclude,
++            report=report,
++        )
++        if resolved is None:
++            continue
++        path, is_stdin = resolved
++
++        src_root = _source_root(root, path)
+ 
+         # Compare the logic here to the logic in `gen_python_files`.
+         if is_stdin or path.is_file():
+-            if resolves_outside_root_or_cannot_stat(path, src_root, report):
+-                if verbose:
+-                    out(f'Skipping invalid source: "{path}"', fg="red")
+-                continue
+-
+-            root_relative_path = best_effort_relative_path(path, src_root).as_posix()
+-            root_relative_path = "/" + root_relative_path
+-
+-            # Hard-exclude any files that matches the `--force-exclude` regex.
+-            if path_is_excluded(root_relative_path, force_exclude):
+-                report.path_ignored(
+-                    path, "matches the --force-exclude regular expression"
+-                )
+-                continue
+-
+-            if is_stdin:
+-                path = Path(f"{STDIN_PLACEHOLDER}{path}")
+-
+-            if path.suffix == ".ipynb" and not jupyter_dependencies_are_installed(
+-                warn=verbose or not quiet
+-            ):
+-                continue
+-
+-            if verbose:
+-                out(f'Found input source: "{path}"', fg="blue")
+-            sources.add(path)
++            file_source = _file_source_to_add(
++                path,
++                is_stdin=is_stdin,
++                src_root=src_root,
++                force_exclude=force_exclude,
++                report=report,
++                verbose=verbose,
++                quiet=quiet,
++            )
++            if file_source is not None:
++                sources.add(file_source)
+         elif path.is_dir():
+             path = src_root / (path.resolve().relative_to(src_root))
+             if verbose:
+@@ -963,16 +1132,89 @@
+     """
+     path = Path("<string>")
+     try:
+-        changed = Changed.NO
+-        if format_stdin_to_stdout(
++        was_changed = format_stdin_to_stdout(
+             content=content, fast=fast, write_back=write_back, mode=mode, lines=lines
+-        ):
+-            changed = Changed.YES
+-        report.done(path, changed)
++        )
++        report.done(path, Changed.YES if was_changed else Changed.NO)
+     except Exception as exc:
+         if report.verbose:
+             traceback.print_exc()
+         report.failed(path, exc)
++
++
++def _mode_for_suffix(src: Path, mode: Mode) -> Mode:
++    """Return `mode` adjusted for stub or notebook files, judging by the suffix."""
++    if src.suffix == ".pyi":
++        return replace(mode, is_pyi=True)
++    if src.suffix == ".ipynb":
++        return replace(mode, is_ipynb=True)
++    return mode
++
++
++def _resolve_stdin_source(src: Path) -> tuple[bool, Path]:
++    """Return `(is_stdin, src)`, restoring the original name of a stdin placeholder."""
++    if str(src) == "-":
++        return True, src
++    if str(src).startswith(STDIN_PLACEHOLDER):
++        # Use the original name again in case we want to print something
++        # to the user
++        return True, Path(str(src)[len(STDIN_PLACEHOLDER) :])
++    return False, src
++
++
++def _read_cache(mode: Mode, no_cache: bool, cache_dir: Path | None) -> Cache | None:
++    if no_cache:
++        return None
++    if cache_dir is None:
++        return Cache.read(mode)
++    return Cache.read(mode, cache_dir)
++
++
++def _should_write_to_cache(write_back: WriteBack, changed: Changed) -> bool:
++    can_cache_unmodified = (
++        write_back in (WriteBack.CHECK, WriteBack.DIFF, WriteBack.COLOR_DIFF)
++        and changed is Changed.NO
++    )
++    return (
++        write_back is WriteBack.YES and changed is not Changed.CACHED
++    ) or can_cache_unmodified
++
++
++def _reformat_stdin(
++    src: Path,
++    fast: bool,
++    write_back: WriteBack,
++    mode: Mode,
++    lines: Collection[tuple[int, int]],
++) -> Changed:
++    mode = _mode_for_suffix(src, mode)
++    if format_stdin_to_stdout(fast=fast, write_back=write_back, mode=mode, lines=lines):
++        return Changed.YES
++    return Changed.NO
++
++
++def _reformat_file_using_cache(
++    src: Path,
++    fast: bool,
++    write_back: WriteBack,
++    mode: Mode,
++    lines: Collection[tuple[int, int]],
++    no_cache: bool,
++    cache_dir: Path | None,
++) -> Changed:
++    cache = _read_cache(mode, no_cache, cache_dir)
++    changed = Changed.NO
++    if cache is not None and not cache.is_changed(src):
++        changed = Changed.CACHED
++    if changed is not Changed.CACHED and format_file_in_place(
++        src, fast=fast, write_back=write_back, mode=mode, lines=lines
++    ):
++        changed = Changed.YES
++    # Formatting only some lines doesn't make the whole file formatted, and
++    # the cache key doesn't include the line ranges, so don't record it.
++    if cache is not None and not lines and _should_write_to_cache(write_back, changed):
++        cache.write([src])
++    return changed
+ 
+ 
+ # diff-shades depends on being to monkeypatch this function to operate. I know it's
+@@ -995,61 +1237,74 @@
+     :func:`format_file_in_place` or :func:`format_stdin_to_stdout`.
+     """
+     try:
+-        changed = Changed.NO
+-
+-        if str(src) == "-":
+-            is_stdin = True
+-        elif str(src).startswith(STDIN_PLACEHOLDER):
+-            is_stdin = True
+-            # Use the original name again in case we want to print something
+-            # to the user
+-            src = Path(str(src)[len(STDIN_PLACEHOLDER) :])
++        is_stdin, src = _resolve_stdin_source(src)
++        if is_stdin:
++            changed = _reformat_stdin(src, fast, write_back, mode, lines)
+         else:
+-            is_stdin = False
+-
+-        if is_stdin:
+-            if src.suffix == ".pyi":
+-                mode = replace(mode, is_pyi=True)
+-            elif src.suffix == ".ipynb":
+-                mode = replace(mode, is_ipynb=True)
+-            if format_stdin_to_stdout(
+-                fast=fast, write_back=write_back, mode=mode, lines=lines
+-            ):
+-                changed = Changed.YES
+-        else:
+-            if no_cache:
+-                cache = None
+-            elif cache_dir is None:
+-                cache = Cache.read(mode)
+-            else:
+-                cache = Cache.read(mode, cache_dir)
+-            if cache is not None:
+-                if not cache.is_changed(src):
+-                    changed = Changed.CACHED
+-            if changed is not Changed.CACHED and format_file_in_place(
+-                src, fast=fast, write_back=write_back, mode=mode, lines=lines
+-            ):
+-                changed = Changed.YES
+-            can_cache_unmodified = (
+-                write_back in (WriteBack.CHECK, WriteBack.DIFF, WriteBack.COLOR_DIFF)
+-                and changed is Changed.NO
++            changed = _reformat_file_using_cache(
++                src, fast, write_back, mode, lines, no_cache, cache_dir
+             )
+-            # Formatting only some lines doesn't make the whole file formatted, and
+-            # the cache key doesn't include the line ranges, so don't record it.
+-            if (
+-                cache is not None
+-                and not lines
+-                and (
+-                    (write_back is WriteBack.YES and changed is not Changed.CACHED)
+-                    or can_cache_unmodified
+-                )
+-            ):
+-                cache.write([src])
+         report.done(src, changed)
+     except Exception as exc:
+         if report.verbose:
+             traceback.print_exc()
+         report.failed(src, exc)
++
++
++def _decode_header(header: bytes, encoding: str, newline: str) -> str:
++    """Decode the skipped first line, normalizing its line ending to "\\n".
++
++    The contents are written with `newline` translation, which would turn the
++    header's original line ending into e.g. "\\r\\r\\n".
++    """
++    header_str = header.decode(encoding)
++    if newline != "\n" and header_str.endswith(newline):
++        header_str = header_str[: -len(newline)] + "\n"
++    return header_str
++
++
++def _read_source_file(
++    src: Path, mode: Mode
++) -> tuple[bytes, FileContent, Encoding, NewLine]:
++    """Read `src`, returning `(header, contents, encoding, newline)`."""
++    header = b""
++    with open(src, "rb") as buf:
++        if mode.skip_source_first_line:
++            header = buf.readline()
++        src_contents, encoding, newline = decode_bytes(buf.read(), mode)
++    return header, src_contents, encoding, newline
++
++
++def _write_file_diff(
++    src: Path,
++    src_contents: str,
++    dst_contents: str,
++    *,
++    then: datetime,
++    mode: Mode,
++    write_back: WriteBack,
++    encoding: str,
++    newline: str,
++    lock: Any,
++) -> None:
++    now = datetime.now(timezone.utc)
++    src_name = f"{src}\t{then}"
++    dst_name = f"{src}\t{now}"
++    if mode.is_ipynb:
++        diff_contents = ipynb_diff(src_contents, dst_contents, src_name, dst_name)
++    else:
++        diff_contents = diff(src_contents, dst_contents, src_name, dst_name)
++
++    if write_back == WriteBack.COLOR_DIFF:
++        diff_contents = color_diff(diff_contents)
++
++    with lock or nullcontext():
++        _write_to_stdout(
++            diff_contents,
++            encoding=encoding,
++            newline=newline,
++            wrap_for_windows=True,
++        )
+ 
+ 
+ def format_file_in_place(
+@@ -1067,17 +1322,10 @@
+     code to the file.
+     `mode` and `fast` options are passed to :func:`format_file_contents`.
+     """
+-    if src.suffix == ".pyi":
+-        mode = replace(mode, is_pyi=True)
+-    elif src.suffix == ".ipynb":
+-        mode = replace(mode, is_ipynb=True)
++    mode = _mode_for_suffix(src, mode)
+ 
+     then = datetime.fromtimestamp(src.stat().st_mtime, timezone.utc)
+-    header = b""
+-    with open(src, "rb") as buf:
+-        if mode.skip_source_first_line:
+-            header = buf.readline()
+-        src_contents, encoding, newline = decode_bytes(buf.read(), mode)
++    header, src_contents, encoding, newline = _read_source_file(src, mode)
+     try:
+         dst_contents = format_file_contents(
+             src_contents, fast=fast, mode=mode, lines=lines
+@@ -1088,11 +1336,7 @@
+         raise ValueError(
+             f"File '{src}' cannot be parsed as valid Jupyter notebook."
+         ) from None
+-    header_str = header.decode(encoding)
+-    if newline != "\n" and header_str.endswith(newline):
+-        # The contents are written with `newline` translation, which would turn the
+-        # header's original line ending into e.g. "\r\r\n".
+-        header_str = header_str[: -len(newline)] + "\n"
++    header_str = _decode_header(header, encoding, newline)
+     src_contents = header_str + src_contents
+     dst_contents = header_str + dst_contents
+ 
+@@ -1100,26 +1344,59 @@
+         with open(src, "w", encoding=encoding, newline=newline) as f:
+             f.write(dst_contents)
+     elif write_back in (WriteBack.DIFF, WriteBack.COLOR_DIFF):
++        _write_file_diff(
++            src,
++            src_contents,
++            dst_contents,
++            then=then,
++            mode=mode,
++            write_back=write_back,
++            encoding=encoding,
++            newline=newline,
++            lock=lock,
++        )
++
++    return True
++
++
++def _read_stdin(mode: Mode) -> tuple[FileContent, Encoding, NewLine, str]:
++    """Read stdin, returning `(contents, encoding, newline, header_str)`."""
++    buf = io.BytesIO(sys.stdin.buffer.read())
++    header = buf.readline() if mode.skip_source_first_line else b""
++    src, encoding, newline = decode_bytes(buf.read(), mode)
++    return src, encoding, newline, _decode_header(header, encoding, newline)
++
++
++def _write_stdin_result(
++    src: str,
++    dst: str,
++    *,
++    write_back: WriteBack,
++    then: datetime,
++    encoding: str,
++    newline: str,
++) -> None:
++    """Write the result of formatting stdin to stdout, as `write_back` dictates."""
++    if write_back == WriteBack.YES:
++        # Make sure there's a newline after the content. `_write_to_stdout()`
++        # translates "\n" into `newline` itself, so append a bare "\n" here;
++        # appending `newline` would write e.g. "\r\r\n" for CRLF input.
++        if dst and dst[-1] != "\n" and dst[-1] != "\r":
++            dst += "\n"
++        _write_to_stdout(dst, encoding=encoding, newline=newline)
++    elif write_back in (WriteBack.DIFF, WriteBack.COLOR_DIFF):
+         now = datetime.now(timezone.utc)
+-        src_name = f"{src}\t{then}"
+-        dst_name = f"{src}\t{now}"
+-        if mode.is_ipynb:
+-            diff_contents = ipynb_diff(src_contents, dst_contents, src_name, dst_name)
+-        else:
+-            diff_contents = diff(src_contents, dst_contents, src_name, dst_name)
+-
++        src_name = f"STDIN\t{then}"
++        dst_name = f"STDOUT\t{now}"
++        d = diff(src, dst, src_name, dst_name)
+         if write_back == WriteBack.COLOR_DIFF:
+-            diff_contents = color_diff(diff_contents)
+-
+-        with lock or nullcontext():
+-            _write_to_stdout(
+-                diff_contents,
+-                encoding=encoding,
+-                newline=newline,
+-                wrap_for_windows=True,
+-            )
+-
+-    return True
++            d = color_diff(d)
++        _write_to_stdout(
++            d,
++            encoding=encoding,
++            newline=newline,
++            wrap_for_windows=write_back == WriteBack.COLOR_DIFF,
++        )
+ 
+ 
+ def format_stdin_to_stdout(
+@@ -1140,18 +1417,10 @@
+     """
+     then = datetime.now(timezone.utc)
+ 
+-    header_str = ""
+     if content is None:
+-        buf = io.BytesIO(sys.stdin.buffer.read())
+-        header = buf.readline() if mode.skip_source_first_line else b""
+-        src, encoding, newline = decode_bytes(buf.read(), mode)
+-        header_str = header.decode(encoding)
+-        if newline != "\n" and header_str.endswith(newline):
+-            # The output is written with `newline` translation, which would turn
+-            # the header's original line ending into e.g. "\r\r\n".
+-            header_str = header_str[: -len(newline)] + "\n"
++        src, encoding, newline, header_str = _read_stdin(mode)
+     else:
+-        src, encoding, newline = content, "utf-8", "\n"
++        src, encoding, newline, header_str = content, "utf-8", "\n", ""
+ 
+     dst = src
+     try:
+@@ -1162,28 +1431,14 @@
+         return False
+ 
+     finally:
+-        src = header_str + src
+-        dst = header_str + dst
+-        if write_back == WriteBack.YES:
+-            # Make sure there's a newline after the content. `_write_to_stdout()`
+-            # translates "\n" into `newline` itself, so append a bare "\n" here;
+-            # appending `newline` would write e.g. "\r\r\n" for CRLF input.
+-            if dst and dst[-1] != "\n" and dst[-1] != "\r":
+-                dst += "\n"
+-            _write_to_stdout(dst, encoding=encoding, newline=newline)
+-        elif write_back in (WriteBack.DIFF, WriteBack.COLOR_DIFF):
+-            now = datetime.now(timezone.utc)
+-            src_name = f"STDIN\t{then}"
+-            dst_name = f"STDOUT\t{now}"
+-            d = diff(src, dst, src_name, dst_name)
+-            if write_back == WriteBack.COLOR_DIFF:
+-                d = color_diff(d)
+-            _write_to_stdout(
+-                d,
+-                encoding=encoding,
+-                newline=newline,
+-                wrap_for_windows=write_back == WriteBack.COLOR_DIFF,
+-            )
++        _write_stdin_result(
++            header_str + src,
++            header_str + dst,
++            write_back=write_back,
++            then=then,
++            encoding=encoding,
++            newline=newline,
++        )
+ 
+ 
+ def _write_to_stdout(
+@@ -1353,13 +1608,13 @@
+             else:
+                 cell["source"] = dst.splitlines(keepends=True)
+                 modified = True
+-    if modified:
+-        dst_contents = json.dumps(nb, indent=1, ensure_ascii=False)
+-        if trailing_newline:
+-            dst_contents = dst_contents + "\n"
+-        return dst_contents
+-    else:
++    if not modified:
+         raise NothingChanged
++
++    dst_contents = json.dumps(nb, indent=1, ensure_ascii=False)
++    if trailing_newline:
++        dst_contents = dst_contents + "\n"
++    return dst_contents
+ 
+ 
+ def format_str(
+@@ -1413,33 +1668,40 @@
+         try:
+             dst_contents = _format_str_once(dst_contents, mode=mode, lines=lines)
+         except InvalidInput as exc:
+-            # This pass parses Black's own output, so failing to parse it means
+-            # Black produced the invalid code, not the user. Reported as an
+-            # internal error rather than as a syntax error in the user's file,
+-            # keeping the parse location, which points into Black's output.
+-            log = dump_to_file(dst_contents)
+-            exc.context = (
+-                f"INTERNAL ERROR: {_black_info()} produced invalid code:\n"
+-                f"{exc.context or 'cannot parse'}"
+-            )
+-            exc.details = (
+-                f"{exc.details or ''}\n"
+-                "Please report a bug on https://github.com/psf/black/issues.  "
+-                f"This invalid output might be helpful: {log}"
+-            )
+-            exc.args = (
+-                f"{exc.context}: {exc.lineno}:{exc.column}{exc.details}",
+-                exc.lineno,
+-                exc.column,
+-                exc.context,
+-                exc.details,
+-            )
++            _mark_as_internal_error(exc, dst_contents)
+             raise
+     if lines:
+         dst_contents = _restore_unselected_trailing_blank_lines(
+             src_contents, dst_contents, lines
+         )
+     return dst_contents
++
++
++def _mark_as_internal_error(exc: InvalidInput, dst_contents: str) -> None:
++    """Rewrite `exc` so that it reports Black's own invalid output as a bug.
++
++    The second pass parses Black's own output, so failing to parse it means Black
++    produced the invalid code, not the user. It is reported as an internal error
++    rather than as a syntax error in the user's file, keeping the parse location,
++    which points into Black's output.
++    """
++    log = dump_to_file(dst_contents)
++    exc.context = (
++        f"INTERNAL ERROR: {_black_info()} produced invalid code:\n"
++        f"{exc.context or 'cannot parse'}"
++    )
++    exc.details = (
++        f"{exc.details or ''}\n"
++        "Please report a bug on https://github.com/psf/black/issues.  "
++        f"This invalid output might be helpful: {log}"
++    )
++    exc.args = (
++        f"{exc.context}: {exc.lineno}:{exc.column}{exc.details}",
++        exc.lineno,
++        exc.column,
++        exc.context,
++        exc.details,
++    )
+ 
+ 
+ def _restore_unselected_trailing_blank_lines(
+@@ -1464,52 +1726,29 @@
+     return dst_contents
+ 
+ 
+-def _format_str_once(
+-    src_contents: str, *, mode: Mode, lines: Collection[tuple[int, int]] = ()
+-) -> str:
+-    # Use the encoding overwrite since the src_contents may contain a different
+-    # magic encoding comment than utf-8
+-    normalized_contents, _, newline_type = decode_bytes(
+-        src_contents.encode("utf-8"), mode, encoding_overwrite="utf-8"
+-    )
+-
+-    src_node = lib2to3_parse(
+-        normalized_contents.lstrip(), target_versions=mode.target_versions
+-    )
+-
+-    dst_blocks: list[LinesBlock] = []
++def _resolve_target_versions(mode: Mode, src_node: Node) -> set[TargetVersion]:
++    """Return the configured target versions, or detect them from `src_node`."""
+     if mode.target_versions:
+-        versions = mode.target_versions
+-    else:
+-        future_imports = get_future_imports(src_node)
+-        versions = detect_target_versions(src_node, future_imports=future_imports)
+-
+-    line_generation_features = {
+-        feature
+-        for feature in {
+-            Feature.PARENTHESIZED_CONTEXT_MANAGERS,
+-            Feature.UNPARENTHESIZED_EXCEPT_TYPES,
+-            Feature.T_STRINGS,
+-            Feature.UNPARENTHESIZED_WALRUS_IN_SETS,
+-        }
+-        if supports_feature(versions, feature)
+-    }
+-    normalize_fmt_off(src_node, mode, lines)
+-    if lines:
+-        # This should be called after normalize_fmt_off.
+-        convert_unchanged_lines(src_node, lines)
+-
++        return mode.target_versions
++    future_imports = get_future_imports(src_node)
++    return detect_target_versions(src_node, future_imports=future_imports)
++
++
++def _supported_features(
++    versions: set[TargetVersion], candidates: Collection[Feature]
++) -> set[Feature]:
++    return {feature for feature in candidates if supports_feature(versions, feature)}
++
++
++def _generate_blocks(
++    src_node: Node,
++    mode: Mode,
++    line_generation_features: Collection[Feature],
++    split_line_features: Collection[Feature],
++) -> list[LinesBlock]:
+     line_generator = LineGenerator(mode=mode, features=line_generation_features)
+     elt = EmptyLineTracker(mode=mode)
+-    split_line_features = {
+-        feature
+-        for feature in {
+-            Feature.TRAILING_COMMA_IN_CALL,
+-            Feature.TRAILING_COMMA_IN_DEF,
+-        }
+-        if supports_feature(versions, feature)
+-    }
+-    block: LinesBlock | None = None
++    dst_blocks: list[LinesBlock] = []
+     for current_line in line_generator.visit(src_node):
+         block = elt.maybe_empty_lines(current_line)
+         dst_blocks.append(block)
+@@ -1519,12 +1758,38 @@
+             block.content_lines.append(str(line))
+     if dst_blocks:
+         dst_blocks[-1].after = 0
+-    dst_contents = []
+-    for block in dst_blocks:
+-        dst_contents.extend(block.all_lines())
+-    if not dst_contents:
+-        if "\n" in normalized_contents:
+-            return newline_type
++    return dst_blocks
++
++
++def _format_str_once(
++    src_contents: str, *, mode: Mode, lines: Collection[tuple[int, int]] = ()
++) -> str:
++    # Use the encoding overwrite since the src_contents may contain a different
++    # magic encoding comment than utf-8
++    normalized_contents, _, newline_type = decode_bytes(
++        src_contents.encode("utf-8"), mode, encoding_overwrite="utf-8"
++    )
++
++    src_node = lib2to3_parse(
++        normalized_contents.lstrip(), target_versions=mode.target_versions
++    )
++
++    versions = _resolve_target_versions(mode, src_node)
++    line_generation_features = _supported_features(
++        versions, _LINE_GENERATION_CANDIDATES
++    )
++    normalize_fmt_off(src_node, mode, lines)
++    if lines:
++        # This should be called after normalize_fmt_off.
++        convert_unchanged_lines(src_node, lines)
++
++    split_line_features = _supported_features(versions, _SPLIT_LINE_CANDIDATES)
++    dst_blocks = _generate_blocks(
++        src_node, mode, line_generation_features, split_line_features
++    )
++    dst_contents = [line for block in dst_blocks for line in block.all_lines()]
++    if not dst_contents and "\n" in normalized_contents:
++        return newline_type
+     dst = "".join(dst_contents)
+     if not mode.is_ipynb:
+         dst = _keep_encoding_declaration_ignored(normalized_contents, dst)
+@@ -1562,6 +1827,18 @@
+     return dst_contents
+ 
+ 
++def _detect_newline(first_line: bytes) -> NewLine:
++    """Return the newline convention used by `first_line` (LF, CRLF or CR)."""
++    if first_line.endswith(b"\r\n"):
++        content, default = first_line[:-2], "\r\n"
++    elif first_line.endswith(b"\n"):
++        content, default = first_line[:-1], "\n"
++    else:
++        content, default = first_line, "\n"
++    # A bare "\r" inside the line means old Mac line endings.
++    return "\r" if b"\r" in content else default
++
++
+ def decode_bytes(
+     src: bytes, mode: Mode, *, encoding_overwrite: str | None = None
+ ) -> tuple[FileContent, Encoding, NewLine]:
+@@ -1584,25 +1861,102 @@
+     if not lines:
+         return "", encoding, "\n"
+ 
+-    if lines[0][-2:] == b"\r\n":
+-        if b"\r" in lines[0][:-2]:
+-            newline = "\r"
+-        else:
+-            newline = "\r\n"
+-    elif lines[0][-1:] == b"\n":
+-        if b"\r" in lines[0][:-1]:
+-            newline = "\r"
+-        else:
+-            newline = "\n"
+-    else:
+-        if b"\r" in lines[0]:
+-            newline = "\r"
+-        else:
+-            newline = "\n"
++    newline = _detect_newline(lines[0])
+ 
+     srcbuf.seek(0)
+     with io.TextIOWrapper(srcbuf, encoding) as tiow:
+         return tiow.read(), encoding, newline
++
++
++def _is_debug_fstring_brace(n: LN) -> bool:
++    """Is `n` the closing brace of a self-documenting f-string field (`{x=}`)?"""
++    return (
++        n.type == token.RBRACE
++        and n.parent is not None
++        and any(child.type == token.EQUAL for child in n.parent.children)
++    )
++
++
++def _has_star_arguments(node: LN) -> bool:
++    """Does an argument list contain `*` or `**` arguments?"""
++    for child in node.children:
++        if child.type in STARS:
++            return True
++        if child.type == syms.argument and any(
++            argch.type in STARS for argch in child.children
++        ):
++            return True
++    return False
++
++
++def _is_unpacking_on_flow(n: LN) -> bool:
++    """Is `n` a return/yield of a tuple containing an unpacked element?"""
++    return (
++        n.type in {syms.return_stmt, syms.yield_expr}
++        and len(n.children) >= 2
++        and n.children[1].type == syms.testlist_star_expr
++        and any(child.type == syms.star_expr for child in n.children[1].children)
++    )
++
++
++def _is_extended_ann_assign_rhs(n: LN) -> bool:
++    return (
++        n.type == syms.annassign
++        and len(n.children) >= 4
++        and n.children[3].type == syms.testlist_star_expr
++    )
++
++
++def _has_parenthesized_context_managers(n: LN) -> bool:
++    if not (
++        n.type == syms.with_stmt
++        and len(n.children) > 2
++        and n.children[1].type == syms.atom
++    ):
++        return False
++
++    atom_children = n.children[1].children
++    return (
++        len(atom_children) == 3
++        and atom_children[0].type == token.LPAR
++        and _contains_asexpr(atom_children[1])
++        and atom_children[2].type == token.RPAR
++    )
++
++
++def _is_variadic_generic(n: LN) -> bool:
++    return (
++        n.type in {syms.subscriptlist, syms.trailer}
++        and any(child.type == syms.star_expr for child in n.children)
++    ) or (
++        n.type == syms.tname_star
++        and len(n.children) == 3
++        and n.children[2].type == syms.star_expr
++    )
++
++
++def _except_clause_features(n: LN) -> set[Feature]:
++    """Return the features used by an `except` / `except*` clause."""
++    features: set[Feature] = set()
++    is_star_except = n.children[1].type == token.STAR
++
++    if is_star_except:
++        features.add(Feature.EXCEPT_STAR)
++
++    # Presence of except* pushes the exception expression and `as` clause one
++    # index back.
++    offset = int(is_star_except)
++    exception_index = 1 + offset
++    has_as_clause = (
++        len(n.children) >= offset + 3
++        and n.children[offset + 2].type == token.NAME
++        and n.children[offset + 2].value == "as"  # type: ignore
++    )
++
++    # If there's no 'as' clause and the except expression is a testlist.
++    if not has_as_clause and n.children[exception_index].type == syms.testlist:
++        features.add(Feature.UNPARENTHESIZED_EXCEPT_TYPES)
++    return features
+ 
+ 
+ def get_features_used(
+@@ -1640,11 +1994,7 @@
+             features.add(Feature.F_STRINGS)
+         elif n.type == token.TSTRING_START:
+             features.add(Feature.T_STRINGS)
+-        elif (
+-            n.type == token.RBRACE
+-            and n.parent is not None
+-            and any(child.type == token.EQUAL for child in n.parent.children)
+-        ):
++        elif _is_debug_fstring_brace(n):
+             features.add(Feature.DEBUG_F_STRINGS)
+ 
+         elif is_number_token(n):
+@@ -1684,57 +2034,22 @@
+             else:
+                 feature = Feature.TRAILING_COMMA_IN_CALL
+ 
+-            for ch in n.children:
+-                if ch.type in STARS:
+-                    features.add(feature)
+-
+-                if ch.type == syms.argument:
+-                    for argch in ch.children:
+-                        if argch.type in STARS:
+-                            features.add(feature)
+-
+-        elif (
+-            n.type in {syms.return_stmt, syms.yield_expr}
+-            and len(n.children) >= 2
+-            and n.children[1].type == syms.testlist_star_expr
+-            and any(child.type == syms.star_expr for child in n.children[1].children)
+-        ):
++            if _has_star_arguments(n):
++                features.add(feature)
++
++        elif _is_unpacking_on_flow(n):
+             features.add(Feature.UNPACKING_ON_FLOW)
+ 
+-        elif (
+-            n.type == syms.annassign
+-            and len(n.children) >= 4
+-            and n.children[3].type == syms.testlist_star_expr
+-        ):
++        elif _is_extended_ann_assign_rhs(n):
+             features.add(Feature.ANN_ASSIGN_EXTENDED_RHS)
+ 
+-        elif (
+-            n.type == syms.with_stmt
+-            and len(n.children) > 2
+-            and n.children[1].type == syms.atom
+-        ):
+-            atom_children = n.children[1].children
+-            if (
+-                len(atom_children) == 3
+-                and atom_children[0].type == token.LPAR
+-                and _contains_asexpr(atom_children[1])
+-                and atom_children[2].type == token.RPAR
+-            ):
+-                features.add(Feature.PARENTHESIZED_CONTEXT_MANAGERS)
++        elif _has_parenthesized_context_managers(n):
++            features.add(Feature.PARENTHESIZED_CONTEXT_MANAGERS)
+ 
+         elif n.type == syms.match_stmt:
+             features.add(Feature.PATTERN_MATCHING)
+ 
+-        elif n.type in {syms.subscriptlist, syms.trailer} and any(
+-            child.type == syms.star_expr for child in n.children
+-        ):
+-            features.add(Feature.VARIADIC_GENERICS)
+-
+-        elif (
+-            n.type == syms.tname_star
+-            and len(n.children) == 3
+-            and n.children[2].type == syms.star_expr
+-        ):
++        elif _is_variadic_generic(n):
+             features.add(Feature.VARIADIC_GENERICS)
+ 
+         elif n.type in (syms.type_stmt, syms.typeparams):
+@@ -1753,24 +2068,7 @@
+                 n.children[1].type == token.STAR or n.children[1].type == syms.testlist
+             )
+         ):
+-            is_star_except = n.children[1].type == token.STAR
+-
+-            if is_star_except:
+-                features.add(Feature.EXCEPT_STAR)
+-
+-            # Presence of except* pushes as clause 1 index back
+-            has_as_clause = (
+-                len(n.children) >= is_star_except + 3
+-                and n.children[is_star_except + 2].type == token.NAME
+-                and n.children[is_star_except + 2].value == "as"  # type: ignore
+-            )
+-
+-            # If there's no 'as' clause and the except expression is a testlist.
+-            if not has_as_clause and (
+-                (is_star_except and n.children[2].type == syms.testlist)
+-                or (not is_star_except and n.children[1].type == syms.testlist)
+-            ):
+-                features.add(Feature.UNPARENTHESIZED_EXCEPT_TYPES)
++            features |= _except_clause_features(n)
+ 
+     return features
+ 
+@@ -1819,28 +2117,38 @@
+     }
+ 
+ 
++def _iter_imported_names(children: list[LN]) -> Generator[str, None, None]:
++    """Yield the names imported by the children of an `import_from` statement."""
++    for child in children:
++        if isinstance(child, Leaf):
++            if child.type == token.NAME:
++                yield child.value
++
++        elif child.type == syms.import_as_name:
++            orig_name = child.children[0]
++            assert isinstance(orig_name, Leaf), "Invalid syntax parsing imports"
++            assert orig_name.type == token.NAME, "Invalid syntax parsing imports"
++            yield orig_name.value
++
++        elif child.type == syms.import_as_names:
++            yield from _iter_imported_names(child.children)
++
++        else:
++            raise AssertionError("Invalid syntax parsing imports")
++
++
++def _is_docstring_statement(stmt: LN, first_child: Leaf) -> bool:
++    return (
++        len(stmt.children) == 2
++        and first_child.type == token.STRING
++        and stmt.children[1].type == token.NEWLINE
++    )
++
++
+ def get_future_imports(node: Node) -> set[str]:
+     """Return a set of __future__ imports in the file."""
+     imports: set[str] = set()
+ 
+-    def get_imports_from_children(children: list[LN]) -> Generator[str, None, None]:
+-        for child in children:
+-            if isinstance(child, Leaf):
+-                if child.type == token.NAME:
+-                    yield child.value
+-
+-            elif child.type == syms.import_as_name:
+-                orig_name = child.children[0]
+-                assert isinstance(orig_name, Leaf), "Invalid syntax parsing imports"
+-                assert orig_name.type == token.NAME, "Invalid syntax parsing imports"
+-                yield orig_name.value
+-
+-            elif child.type == syms.import_as_names:
+-                yield from get_imports_from_children(child.children)
+-
+-            else:
+-                raise AssertionError("Invalid syntax parsing imports")
+-
+     for child in node.children:
+         if child.type != syms.simple_stmt:
+             break
+@@ -1848,11 +2156,7 @@
+         first_child = child.children[0]
+         if isinstance(first_child, Leaf):
+             # Continue looking if we see a docstring; otherwise stop.
+-            if (
+-                len(child.children) == 2
+-                and first_child.type == token.STRING
+-                and child.children[1].type == token.NEWLINE
+-            ):
++            if _is_docstring_statement(child, first_child):
+                 continue
+ 
+             break
+@@ -1865,7 +2169,7 @@
+             if not isinstance(module_name, Leaf) or module_name.value != "__future__":
+                 break
+ 
+-            imports |= set(get_imports_from_children(first_child.children[3:]))
++            imports |= set(_iter_imported_names(first_child.children[3:]))
+         else:
+             break
+ 

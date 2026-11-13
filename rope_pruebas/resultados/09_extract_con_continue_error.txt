@@ -1,8 +1,8 @@
 Traceback (most recent call last):
-  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 553, in ejecutar_rope
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 491, in ejecutar_rope
     cambios = funcion(proyecto)
               ^^^^^^^^^^^^^^^^^
-  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 445, in ref_extract_con_continue
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 382, in ref_extract_con_continue
     return ExtractMethod(p, r, inicio, fin).get_changes('_resolve_stdin_source')
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 82, in get_changes

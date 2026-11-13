@@ -1,0 +1,627 @@
+--- a/src/black/ranges.py
++++ b/src/black/ranges.py
+@@ -20,35 +20,37 @@
+ 
+ 
+ def parse_line_ranges(line_ranges: Sequence[str]) -> list[tuple[int, int]]:
+-    lines: list[tuple[int, int]] = []
+-    for lines_str in line_ranges:
+-        parts = lines_str.split("-")
+-        if len(parts) != 2:
+-            raise ValueError(
+-                "Incorrect --line-ranges format, expect 'START-END', found"
+-                f" {lines_str!r}"
+-            )
+-        try:
+-            start = int(parts[0])
+-            end = int(parts[1])
+-        except ValueError:
+-            raise ValueError(
+-                "Incorrect --line-ranges value, expect integer ranges, found"
+-                f" {lines_str!r}"
+-            ) from None
+-        else:
+-            if start < 1 or end < 1:
+-                raise ValueError(
+-                    "Incorrect --line-ranges value, "
+-                    f"expect positive integers, found {lines_str!r}"
+-                )
+-            if start > end:
+-                raise ValueError(
+-                    "Incorrect --line-ranges value, expect START <= END, "
+-                    f"found {lines_str!r}"
+-                )
+-            lines.append((start, end))
+-    return lines
++    return [_parse_line_range(line_range) for line_range in line_ranges]
++
++
++def _parse_line_range(line_range: str) -> tuple[int, int]:
++    """Parse a single `START-END` string into a `(start, end)` tuple."""
++    parts = line_range.split("-")
++    if len(parts) != 2:
++        raise ValueError(
++            "Incorrect --line-ranges format, expect 'START-END', found"
++            f" {line_range!r}"
++        )
++    try:
++        start = int(parts[0])
++        end = int(parts[1])
++    except ValueError:
++        raise ValueError(
++            "Incorrect --line-ranges value, expect integer ranges, found"
++            f" {line_range!r}"
++        ) from None
++
++    if start < 1 or end < 1:
++        raise ValueError(
++            "Incorrect --line-ranges value, "
++            f"expect positive integers, found {line_range!r}"
++        )
++    if start > end:
++        raise ValueError(
++            "Incorrect --line-ranges value, expect START <= END, "
++            f"found {line_range!r}"
++        )
++    return start, end
+ 
+ 
+ def is_valid_line_range(lines: tuple[int, int]) -> bool:
+@@ -68,7 +70,7 @@
+     """
+     if not src_contents:
+         return []
+-    good_lines = []
++    valid_lines = []
+     src_line_count = src_contents.count("\n")
+     if not src_contents.endswith("\n"):
+         src_line_count += 1
+@@ -80,8 +82,8 @@
+         if end < start:
+             continue
+         end = min(end, src_line_count)
+-        good_lines.append((start, end))
+-    return good_lines
++        valid_lines.append((start, end))
++    return valid_lines
+ 
+ 
+ def adjusted_lines(
+@@ -121,24 +123,8 @@
+       original_source: the original source.
+       modified_source: the modified source.
+     """
+-    if len(lines) > 1:
+-        original_lines = original_source.splitlines(keepends=True)
+-        modified_lines = modified_source.splitlines(keepends=True)
+-        if len(original_lines) == len(modified_lines) and all(
+-            1 <= start <= end <= len(original_lines) for start, end in lines
+-        ):
+-            selected_lines = {
+-                line for start, end in lines for line in range(start - 1, end)
+-            }
+-            # Equal-length edits confined to the requested ranges cannot shift
+-            # their line numbers. Diffing repeated text can move them anyway.
+-            if all(
+-                index in selected_lines or original == modified
+-                for index, (original, modified) in enumerate(
+-                    zip(original_lines, modified_lines, strict=True)
+-                )
+-            ):
+-                return sorted(lines)
++    if _edits_confined_to_ranges(lines, original_source, modified_source):
++        return sorted(lines)
+ 
+     lines_mappings = _calculate_lines_mappings(original_source, modified_source)
+ 
+@@ -163,24 +149,60 @@
+         ):
+             # Protect against invalid inputs.
+             continue
+-        start_mapping = lines_mappings[start_mapping_index]
+-        end_mapping = lines_mappings[end_mapping_index]
+-        if start_mapping.is_changed_block:
+-            # When the line falls into a changed block, expands to the whole block.
+-            new_start = start_mapping.modified_start
+-        else:
+-            new_start = (
+-                start - start_mapping.original_start + start_mapping.modified_start
+-            )
+-        if end_mapping.is_changed_block:
+-            # When the line falls into a changed block, expands to the whole block.
+-            new_end = end_mapping.modified_end
+-        else:
+-            new_end = end - end_mapping.original_start + end_mapping.modified_start
+-        new_range = (new_start, new_end)
++        new_range = (
++            _map_range_start(start, lines_mappings[start_mapping_index]),
++            _map_range_end(end, lines_mappings[end_mapping_index]),
++        )
+         if is_valid_line_range(new_range):
+             new_lines.append(new_range)
+     return new_lines
++
++
++def _edits_confined_to_ranges(
++    lines: Collection[tuple[int, int]],
++    original_source: str,
++    modified_source: str,
++) -> bool:
++    """Whether the edits are equal-length and stay inside the requested ranges.
++
++    Such edits cannot shift line numbers, so the ranges stay valid as they are
++    and the (expensive and potentially misleading) diff can be skipped.
++    """
++    if len(lines) <= 1:
++        return False
++
++    original_lines = original_source.splitlines(keepends=True)
++    modified_lines = modified_source.splitlines(keepends=True)
++    if len(original_lines) != len(modified_lines) or not all(
++        1 <= start <= end <= len(original_lines) for start, end in lines
++    ):
++        return False
++
++    selected_lines = {line for start, end in lines for line in range(start - 1, end)}
++    # Equal-length edits confined to the requested ranges cannot shift
++    # their line numbers. Diffing repeated text can move them anyway.
++    return all(
++        index in selected_lines or original == modified
++        for index, (original, modified) in enumerate(
++            zip(original_lines, modified_lines, strict=True)
++        )
++    )
++
++
++def _map_range_start(start: int, mapping: "_LinesMapping") -> int:
++    """Map the first line of a range through `mapping`."""
++    if mapping.is_changed_block:
++        # When the line falls into a changed block, expands to the whole block.
++        return mapping.modified_start
++    return start - mapping.original_start + mapping.modified_start
++
++
++def _map_range_end(end: int, mapping: "_LinesMapping") -> int:
++    """Map the last line of a range through `mapping`."""
++    if mapping.is_changed_block:
++        # When the line falls into a changed block, expands to the whole block.
++        return mapping.modified_end
++    return end - mapping.original_start + mapping.modified_start
+ 
+ 
+ def convert_unchanged_lines(src_node: Node, lines: Collection[tuple[int, int]]) -> None:
+@@ -307,11 +329,7 @@
+ def _contains_standalone_comment(node: LN) -> bool:
+     if isinstance(node, Leaf):
+         return node.type == STANDALONE_COMMENT
+-    else:
+-        for child in node.children:
+-            if _contains_standalone_comment(child):
+-                return True
+-        return False
++    return any(_contains_standalone_comment(child) for child in node.children)
+ 
+ 
+ def _is_body_on_clause_line(node: LN) -> bool:
+@@ -327,6 +345,22 @@
+             for child in parent.children
+         )
+     )
++
++
++def _semantic_parent_of_suite(suite: Node) -> Node | None:
++    """Find the statement a suite belongs to.
++
++    For `async_stmt` and `async_funcdef`, the ASYNC token is defined on a separate
++    level by the grammar, so the statement is one level further up.
++    """
++    semantic_parent = suite.parent
++    if (
++        semantic_parent is not None
++        and semantic_parent.prev_sibling is not None
++        and semantic_parent.prev_sibling.type == ASYNC
++    ):
++        semantic_parent = semantic_parent.parent
++    return semantic_parent
+ 
+ 
+ class _TopLevelStatementsVisitor(Visitor[None]):
+@@ -373,16 +407,7 @@
+         # here.
+         if _contains_standalone_comment(node):
+             return
+-        # Find the semantic parent of this suite. For `async_stmt` and
+-        # `async_funcdef`, the ASYNC token is defined on a separate level by the
+-        # grammar.
+-        semantic_parent = node.parent
+-        if semantic_parent is not None:
+-            if (
+-                semantic_parent.prev_sibling is not None
+-                and semantic_parent.prev_sibling.type == ASYNC
+-            ):
+-                semantic_parent = semantic_parent.parent
++        semantic_parent = _semantic_parent_of_suite(node)
+         if semantic_parent is not None and not _get_line_range(
+             semantic_parent
+         ).intersection(self._lines_set):
+@@ -403,71 +428,106 @@
+             # This NEWLINE is inside a run already scheduled for conversion (e.g.
+             # a second decorator on a stacked decorator block).
+             continue
+-        if leaf.parent and leaf.parent.type == syms.match_stmt:
+-            # The `suite` node is defined as:
+-            #   match_stmt: "match" subject_expr ':' NEWLINE INDENT case_block+ DEDENT
+-            # Here we need to check `subject_expr`. The `case_block+` will be
+-            # checked by their own NEWLINEs.
+-            nodes_to_ignore: list[LN] = []
+-            prev_sibling = leaf.prev_sibling
+-            while prev_sibling:
+-                nodes_to_ignore.insert(0, prev_sibling)
+-                prev_sibling = prev_sibling.prev_sibling
+-            if not _get_line_range(nodes_to_ignore).intersection(lines_set):
+-                _convert_nodes_to_standalone_comment(
+-                    nodes_to_ignore,
+-                    newline=leaf,
+-                    replacements=replacements,
+-                    lines_set=lines_set,
+-                )
+-        elif leaf.parent and (
+-            leaf.parent.type == syms.suite or _is_body_on_clause_line(leaf.parent)
++        parent = leaf.parent
++        if parent and parent.type == syms.match_stmt:
++            _convert_match_subject(leaf, replacements, lines_set)
++        elif parent and (
++            parent.type == syms.suite or _is_body_on_clause_line(parent)
+         ):
+-            # The `suite` node is defined as:
+-            #   suite: simple_stmt | NEWLINE INDENT stmt+ DEDENT
+-            # We will check `simple_stmt` and `stmt+` separately against the lines set
+-            parent_sibling = leaf.parent.prev_sibling
+-            nodes_to_ignore = []
+-            while parent_sibling and parent_sibling.type not in {
+-                syms.suite,
+-                syms.simple_stmt,
+-            }:
+-                # NOTE: Multiple suite nodes can exist as siblings in e.g. `if_stmt`.
+-                nodes_to_ignore.insert(0, parent_sibling)
+-                parent_sibling = parent_sibling.prev_sibling
+-            if leaf.parent.type == syms.simple_stmt:
+-                # A body on its clause's line is checked with the clause.
+-                nodes_to_ignore.extend(leaf.parent.children[:-1])
+-            # Special case for `async_stmt` and `async_funcdef` where the ASYNC
+-            # token is on the grandparent node.
+-            grandparent = leaf.parent.parent
+-            if (
+-                parent_sibling is None
+-                and grandparent is not None
+-                and grandparent.prev_sibling is not None
+-                and grandparent.prev_sibling.type == ASYNC
+-            ):
+-                nodes_to_ignore.insert(0, grandparent.prev_sibling)
+-            if not _get_line_range(nodes_to_ignore).intersection(lines_set):
+-                _convert_nodes_to_standalone_comment(
+-                    nodes_to_ignore,
+-                    newline=leaf,
+-                    replacements=replacements,
+-                    lines_set=lines_set,
+-                )
++            _convert_clause_line(leaf, parent, replacements, lines_set)
+         else:
+-            ancestor = furthest_ancestor_with_last_leaf(leaf)
+-            # Consider multiple decorators as a whole block, as their
+-            # newlines have different behaviors than the rest of the grammar.
+-            if (
+-                ancestor.type == syms.decorator
+-                and ancestor.parent
+-                and ancestor.parent.type == syms.decorators
+-            ):
+-                ancestor = ancestor.parent
+-            if not _get_line_range(ancestor).intersection(lines_set):
+-                _convert_node_to_standalone_comment(ancestor, replacements, lines_set)
++            _convert_statement_line(leaf, replacements, lines_set)
+     replacements.apply()
++
++
++def _convert_match_subject(
++    newline: Leaf, replacements: "_NodeReplacements", lines_set: frozenset[int]
++) -> None:
++    """Convert the `match <subject>:` line of a match statement if unchanged.
++
++    The `suite` node is defined as:
++      match_stmt: "match" subject_expr ':' NEWLINE INDENT case_block+ DEDENT
++    Here we need to check `subject_expr`. The `case_block+` will be checked by
++    their own NEWLINEs.
++    """
++    nodes_to_ignore = _previous_siblings(newline)
++    if not _get_line_range(nodes_to_ignore).intersection(lines_set):
++        _convert_nodes_to_standalone_comment(
++            nodes_to_ignore,
++            newline=newline,
++            replacements=replacements,
++            lines_set=lines_set,
++        )
++
++
++def _previous_siblings(node: LN) -> list[LN]:
++    """Return all the previous siblings of `node`, in source order."""
++    siblings: list[LN] = []
++    sibling = node.prev_sibling
++    while sibling:
++        siblings.insert(0, sibling)
++        sibling = sibling.prev_sibling
++    return siblings
++
++
++def _convert_clause_line(
++    newline: Leaf,
++    parent: Node,
++    replacements: "_NodeReplacements",
++    lines_set: frozenset[int],
++) -> None:
++    """Convert the clause line (header) preceding a suite if unchanged.
++
++    The `suite` node is defined as:
++      suite: simple_stmt | NEWLINE INDENT stmt+ DEDENT
++    We will check `simple_stmt` and `stmt+` separately against the lines set.
++    """
++    parent_sibling = parent.prev_sibling
++    nodes_to_ignore: list[LN] = []
++    while parent_sibling and parent_sibling.type not in {
++        syms.suite,
++        syms.simple_stmt,
++    }:
++        # NOTE: Multiple suite nodes can exist as siblings in e.g. `if_stmt`.
++        nodes_to_ignore.insert(0, parent_sibling)
++        parent_sibling = parent_sibling.prev_sibling
++    if parent.type == syms.simple_stmt:
++        # A body on its clause's line is checked with the clause.
++        nodes_to_ignore.extend(parent.children[:-1])
++    # Special case for `async_stmt` and `async_funcdef` where the ASYNC
++    # token is on the grandparent node.
++    grandparent = parent.parent
++    if (
++        parent_sibling is None
++        and grandparent is not None
++        and grandparent.prev_sibling is not None
++        and grandparent.prev_sibling.type == ASYNC
++    ):
++        nodes_to_ignore.insert(0, grandparent.prev_sibling)
++    if not _get_line_range(nodes_to_ignore).intersection(lines_set):
++        _convert_nodes_to_standalone_comment(
++            nodes_to_ignore,
++            newline=newline,
++            replacements=replacements,
++            lines_set=lines_set,
++        )
++
++
++def _convert_statement_line(
++    newline: Leaf, replacements: "_NodeReplacements", lines_set: frozenset[int]
++) -> None:
++    """Convert the whole statement ending with `newline` if unchanged."""
++    ancestor = furthest_ancestor_with_last_leaf(newline)
++    # Consider multiple decorators as a whole block, as their
++    # newlines have different behaviors than the rest of the grammar.
++    if (
++        ancestor.type == syms.decorator
++        and ancestor.parent
++        and ancestor.parent.type == syms.decorators
++    ):
++        ancestor = ancestor.parent
++    if not _get_line_range(ancestor).intersection(lines_set):
++        _convert_node_to_standalone_comment(ancestor, replacements, lines_set)
+ 
+ 
+ def _str_with_standalone_comments(*nodes: LN) -> str:
+@@ -484,19 +544,24 @@
+     parts = []
+     for leaf, next_leaf in zip(leaves, [*leaves[1:], None], strict=True):
+         text = str(leaf)
+-        if (
+-            leaf.type == STANDALONE_COMMENT
+-            and next_leaf is not None
+-            and (
+-                # A comment-only fmt:off/on block ends with the `# fmt: on` comment.
+-                # A newline in the next leaf's prefix is a blank line after it.
+-                leaf.fmt_pass_converted_first_leaf is None
+-                or (not str(next_leaf).startswith("\n") and _ends_with_fmt_skip(text))
+-            )
+-        ):
++        if _needs_newline_after(leaf, text, next_leaf):
+             text += "\n"
+         parts.append(text)
+     return "".join(parts)
++
++
++def _needs_newline_after(leaf: Leaf, text: str, next_leaf: Leaf | None) -> bool:
++    """Whether a newline must separate `leaf` (rendered as `text`) from `next_leaf`."""
++    return (
++        leaf.type == STANDALONE_COMMENT
++        and next_leaf is not None
++        and (
++            # A comment-only fmt:off/on block ends with the `# fmt: on` comment.
++            # A newline in the next leaf's prefix is a blank line after it.
++            leaf.fmt_pass_converted_first_leaf is None
++            or (not str(next_leaf).startswith("\n") and _ends_with_fmt_skip(text))
++        )
++    )
+ 
+ 
+ def _ends_with_fmt_skip(text: str) -> bool:
+@@ -509,6 +574,24 @@
+     comment_start = last_line.find("#")
+     return comment_start != -1 and contains_fmt_directive(
+         last_line[comment_start:], FMT_SKIP
++    )
++
++
++def _make_converted_standalone_comment(
++    value: str,
++    prefix: str,
++    first: Leaf,
++    first_lineno: int,
++    lines_set: frozenset[int],
++) -> Leaf:
++    """Build the STANDALONE_COMMENT leaf that replaces unchanged code."""
++    return Leaf(
++        STANDALONE_COMMENT,
++        value,
++        prefix=prefix,
++        fmt_pass_converted_first_leaf=first,
++        line_ranges_first_lineno=first_lineno,
++        line_ranges_selected=lines_set,
+     )
+ 
+ 
+@@ -550,13 +633,8 @@
+     value = _str_with_standalone_comments(node)[:-1]
+     replacements.record(
+         [node],
+-        Leaf(
+-            STANDALONE_COMMENT,
+-            value,
+-            prefix=prefix,
+-            fmt_pass_converted_first_leaf=first,
+-            line_ranges_first_lineno=first_lineno,
+-            line_ranges_selected=lines_set,
++        _make_converted_standalone_comment(
++            value, prefix, first, first_lineno, lines_set
+         ),
+     )
+ 
+@@ -584,13 +662,8 @@
+         newline.prefix = ""
+     replacements.record(
+         list(nodes),
+-        Leaf(
+-            STANDALONE_COMMENT,
+-            value,
+-            prefix=prefix,
+-            fmt_pass_converted_first_leaf=first,
+-            line_ranges_first_lineno=first_lineno,
+-            line_ranges_selected=lines_set,
++        _make_converted_standalone_comment(
++            value, prefix, first, first_lineno, lines_set
+         ),
+     )
+ 
+@@ -607,28 +680,17 @@
+ def _get_line_range(node_or_nodes: LN | list[LN]) -> set[int]:
+     """Returns the line range of this node or list of nodes."""
+     if isinstance(node_or_nodes, list):
+-        nodes = node_or_nodes
+-        if not nodes:
++        if not node_or_nodes:
+             return set()
+-        first = first_leaf(nodes[0])
+-        last = last_leaf(nodes[-1])
+-        if first and last:
+-            line_start = first.lineno
+-            line_end = _leaf_line_end(last)
+-            return set(range(line_start, line_end + 1))
+-        else:
+-            return set()
++        first_node, last_node = node_or_nodes[0], node_or_nodes[-1]
+     else:
+-        node = node_or_nodes
+-        if isinstance(node, Leaf):
+-            return set(range(node.lineno, _leaf_line_end(node) + 1))
+-        else:
+-            first = first_leaf(node)
+-            last = last_leaf(node)
+-            if first and last:
+-                return set(range(first.lineno, _leaf_line_end(last) + 1))
+-            else:
+-                return set()
++        first_node = last_node = node_or_nodes
++
++    first = first_leaf(first_node)
++    last = last_leaf(last_node)
++    if first and last:
++        return set(range(first.lineno, _leaf_line_end(last) + 1))
++    return set()
+ 
+ 
+ @dataclass
+@@ -681,23 +743,40 @@
+     """
+     original_lines = original_source.splitlines(keepends=True)
+     modified_lines = modified_source.splitlines(keepends=True)
+-
++    matching_blocks = _find_matching_blocks(original_lines, modified_lines)
++    return _build_lines_mappings(matching_blocks)
++
++
++def _count_common_prefix(a: Sequence[str], b: Sequence[str]) -> int:
++    """Number of leading lines equal in `a` and `b`."""
++    count = 0
++    limit = min(len(a), len(b))
++    while count < limit and a[count] == b[count]:
++        count += 1
++    return count
++
++
++def _count_common_suffix(a: Sequence[str], b: Sequence[str], prefix: int) -> int:
++    """Number of trailing lines equal in `a` and `b`, not overlapping `prefix`."""
++    count = 0
++    limit = min(len(a), len(b)) - prefix
++    while count < limit and a[-count - 1] == b[-count - 1]:
++        count += 1
++    return count
++
++
++def _find_matching_blocks(
++    original_lines: list[str], modified_lines: list[str]
++) -> list[difflib.Match]:
++    """Return the 0-based blocks of equal lines, ending with a zero-size sentinel.
++
++    The sentinel sits at the end of both sequences.
++    """
+     # SequenceMatcher can align repeated unchanged lines at a different position,
+     # making a change in the middle look like an insertion at the start and a
+     # deletion at the end. Anchor the common edges before diffing the middle.
+-    prefix = 0
+-    while (
+-        prefix < min(len(original_lines), len(modified_lines))
+-        and original_lines[prefix] == modified_lines[prefix]
+-    ):
+-        prefix += 1
+-
+-    suffix = 0
+-    while (
+-        suffix < min(len(original_lines), len(modified_lines)) - prefix
+-        and original_lines[-suffix - 1] == modified_lines[-suffix - 1]
+-    ):
+-        suffix += 1
++    prefix = _count_common_prefix(original_lines, modified_lines)
++    suffix = _count_common_suffix(original_lines, modified_lines, prefix)
+ 
+     original_middle_end = len(original_lines) - suffix
+     modified_middle_end = len(modified_lines) - suffix
+@@ -722,13 +801,20 @@
+             difflib.Match(original_middle_end, modified_middle_end, suffix)
+         )
+     matching_blocks.append(difflib.Match(len(original_lines), len(modified_lines), 0))
++    return matching_blocks
++
++
++def _build_lines_mappings(matching_blocks: Sequence[difflib.Match]) -> list[_LinesMapping]:
++    """Turn 0-based matching blocks into 1-based changed/unchanged mappings.
++
++    matching_blocks is a sequence of "same block of code ranges", see
++    https://docs.python.org/3/library/difflib.html#difflib.SequenceMatcher.get_matching_blocks
++    Each block corresponds to a _LinesMapping with is_changed_block=False,
++    and the ranges between two blocks corresponds to a _LinesMapping with
++    is_changed_block=True,
++    NOTE: matching_blocks is 0-based, but _LinesMapping is 1-based.
++    """
+     lines_mappings: list[_LinesMapping] = []
+-    # matching_blocks is a sequence of "same block of code ranges", see
+-    # https://docs.python.org/3/library/difflib.html#difflib.SequenceMatcher.get_matching_blocks
+-    # Each block corresponds to a _LinesMapping with is_changed_block=False,
+-    # and the ranges between two blocks corresponds to a _LinesMapping with
+-    # is_changed_block=True,
+-    # NOTE: matching_blocks is 0-based, but _LinesMapping is 1-based.
+     for i, block in enumerate(matching_blocks):
+         if i == 0:
+             if block.a != 0 or block.b != 0:

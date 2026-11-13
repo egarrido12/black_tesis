@@ -30,4 +30,4 @@ tests/test_docs.py:70: AssertionError
 =========================== short test summary info ============================
 SKIPPED [2] tests/test_no_ipynb.py: Marked with disabled optional tests (no_jupyter)
 FAILED tests/test_docs.py::test_feature_lists_are_up_to_date - AssertionError...
-1 failed, 742 passed, 2 skipped, 31 subtests passed in 23.99s
+1 failed, 742 passed, 2 skipped, 31 subtests passed in 23.07s

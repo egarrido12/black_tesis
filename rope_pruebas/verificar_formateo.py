@@ -37,10 +37,13 @@ def main():
             shutil.rmtree(destino)
         shutil.copytree(origen, destino)
         archivos = [a for a in filas[caso]['archivos_modificados'] if a.startswith('src/')]
-        cambio = subprocess.run([PYTHON, '-m', 'black', '--diff', '-q', *archivos],
+        # Misma configuración que test_piping (estilo estable); sin --config,
+        # Black tomaría el `unstable = true` del pyproject.toml del proyecto.
+        opciones = ['--config', 'tests/empty.toml']
+        cambio = subprocess.run([PYTHON, '-m', 'black', '--diff', '-q', *opciones, *archivos],
                                 cwd=destino, capture_output=True, text=True).stdout
         (RESULTADOS / (caso + '_black.diff')).write_text(cambio)
-        subprocess.run([PYTHON, '-m', 'black', '-q', *archivos], cwd=destino, check=True)
+        subprocess.run([PYTHON, '-m', 'black', '-q', *opciones, *archivos], cwd=destino, check=True)
         resumen, salida = correr_pytest(destino)
         (RESULTADOS / (caso + '_formateado_pytest.txt')).write_text(salida)
         antes = filas[caso]['tests']

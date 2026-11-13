@@ -127,4 +127,4 @@ Tree Diff:
 =========================== short test summary info ============================
 SKIPPED [2] tests/test_no_ipynb.py: Marked with disabled optional tests (no_jupyter)
 FAILED tests/test_black.py::BlackTestCase::test_piping - AssertionError
-1 failed, 742 passed, 2 skipped, 31 subtests passed in 25.74s
+1 failed, 742 passed, 2 skipped, 31 subtests passed in 26.72s

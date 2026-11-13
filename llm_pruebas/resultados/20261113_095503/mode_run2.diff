@@ -1,0 +1,346 @@
+--- a/src/black/mode.py
++++ b/src/black/mode.py
+@@ -8,7 +8,7 @@
+ from enum import Enum, auto
+ from hashlib import sha256
+ from operator import attrgetter
+-from typing import Final
++from typing import Final, NamedTuple
+ 
+ from black.const import DEFAULT_LINE_LENGTH
+ 
+@@ -71,179 +71,106 @@
+ }
+ 
+ 
+-VERSION_TO_FEATURES: dict[TargetVersion, set[Feature]] = {
+-    TargetVersion.PY33: {Feature.ASYNC_IDENTIFIERS},
+-    TargetVersion.PY34: {Feature.ASYNC_IDENTIFIERS},
+-    TargetVersion.PY35: {Feature.TRAILING_COMMA_IN_CALL, Feature.ASYNC_IDENTIFIERS},
+-    TargetVersion.PY36: {
+-        Feature.F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_IDENTIFIERS,
+-    },
+-    TargetVersion.PY37: {
+-        Feature.F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_KEYWORDS,
+-        Feature.FUTURE_ANNOTATIONS,
+-    },
+-    TargetVersion.PY38: {
+-        Feature.F_STRINGS,
+-        Feature.DEBUG_F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_KEYWORDS,
+-        Feature.FUTURE_ANNOTATIONS,
+-        Feature.ASSIGNMENT_EXPRESSIONS,
+-        Feature.POS_ONLY_ARGUMENTS,
+-        Feature.UNPACKING_ON_FLOW,
+-        Feature.ANN_ASSIGN_EXTENDED_RHS,
+-    },
+-    TargetVersion.PY39: {
+-        Feature.F_STRINGS,
+-        Feature.DEBUG_F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_KEYWORDS,
+-        Feature.FUTURE_ANNOTATIONS,
+-        Feature.ASSIGNMENT_EXPRESSIONS,
+-        Feature.RELAXED_DECORATORS,
+-        Feature.POS_ONLY_ARGUMENTS,
+-        Feature.UNPACKING_ON_FLOW,
+-        Feature.ANN_ASSIGN_EXTENDED_RHS,
+-        Feature.PARENTHESIZED_CONTEXT_MANAGERS,
+-    },
+-    TargetVersion.PY310: {
+-        Feature.F_STRINGS,
+-        Feature.DEBUG_F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_KEYWORDS,
+-        Feature.FUTURE_ANNOTATIONS,
+-        Feature.ASSIGNMENT_EXPRESSIONS,
+-        Feature.RELAXED_DECORATORS,
+-        Feature.POS_ONLY_ARGUMENTS,
+-        Feature.UNPACKING_ON_FLOW,
+-        Feature.ANN_ASSIGN_EXTENDED_RHS,
+-        Feature.PARENTHESIZED_CONTEXT_MANAGERS,
+-        Feature.UNPARENTHESIZED_WALRUS_IN_SETS,
+-        Feature.PATTERN_MATCHING,
+-    },
+-    TargetVersion.PY311: {
+-        Feature.F_STRINGS,
+-        Feature.DEBUG_F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_KEYWORDS,
+-        Feature.FUTURE_ANNOTATIONS,
+-        Feature.ASSIGNMENT_EXPRESSIONS,
+-        Feature.RELAXED_DECORATORS,
+-        Feature.POS_ONLY_ARGUMENTS,
+-        Feature.UNPACKING_ON_FLOW,
+-        Feature.ANN_ASSIGN_EXTENDED_RHS,
+-        Feature.PARENTHESIZED_CONTEXT_MANAGERS,
+-        Feature.UNPARENTHESIZED_WALRUS_IN_SETS,
+-        Feature.PATTERN_MATCHING,
+-        Feature.EXCEPT_STAR,
+-        Feature.VARIADIC_GENERICS,
+-    },
+-    TargetVersion.PY312: {
+-        Feature.F_STRINGS,
+-        Feature.DEBUG_F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_KEYWORDS,
+-        Feature.FUTURE_ANNOTATIONS,
+-        Feature.ASSIGNMENT_EXPRESSIONS,
+-        Feature.RELAXED_DECORATORS,
+-        Feature.POS_ONLY_ARGUMENTS,
+-        Feature.UNPACKING_ON_FLOW,
+-        Feature.ANN_ASSIGN_EXTENDED_RHS,
+-        Feature.PARENTHESIZED_CONTEXT_MANAGERS,
+-        Feature.UNPARENTHESIZED_WALRUS_IN_SETS,
+-        Feature.PATTERN_MATCHING,
+-        Feature.EXCEPT_STAR,
+-        Feature.VARIADIC_GENERICS,
+-        Feature.TYPE_PARAMS,
+-    },
+-    TargetVersion.PY313: {
+-        Feature.F_STRINGS,
+-        Feature.DEBUG_F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_KEYWORDS,
+-        Feature.FUTURE_ANNOTATIONS,
+-        Feature.ASSIGNMENT_EXPRESSIONS,
+-        Feature.RELAXED_DECORATORS,
+-        Feature.POS_ONLY_ARGUMENTS,
+-        Feature.UNPACKING_ON_FLOW,
+-        Feature.ANN_ASSIGN_EXTENDED_RHS,
+-        Feature.PARENTHESIZED_CONTEXT_MANAGERS,
+-        Feature.UNPARENTHESIZED_WALRUS_IN_SETS,
+-        Feature.PATTERN_MATCHING,
+-        Feature.EXCEPT_STAR,
+-        Feature.VARIADIC_GENERICS,
+-        Feature.TYPE_PARAMS,
+-        Feature.TYPE_PARAM_DEFAULTS,
+-    },
+-    TargetVersion.PY314: {
+-        Feature.F_STRINGS,
+-        Feature.DEBUG_F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_KEYWORDS,
+-        Feature.FUTURE_ANNOTATIONS,
+-        Feature.ASSIGNMENT_EXPRESSIONS,
+-        Feature.RELAXED_DECORATORS,
+-        Feature.POS_ONLY_ARGUMENTS,
+-        Feature.UNPACKING_ON_FLOW,
+-        Feature.ANN_ASSIGN_EXTENDED_RHS,
+-        Feature.PARENTHESIZED_CONTEXT_MANAGERS,
+-        Feature.UNPARENTHESIZED_WALRUS_IN_SETS,
+-        Feature.PATTERN_MATCHING,
+-        Feature.EXCEPT_STAR,
+-        Feature.VARIADIC_GENERICS,
+-        Feature.TYPE_PARAMS,
+-        Feature.TYPE_PARAM_DEFAULTS,
+-        Feature.UNPARENTHESIZED_EXCEPT_TYPES,
+-        Feature.T_STRINGS,
+-    },
+-    TargetVersion.PY315: {
+-        Feature.F_STRINGS,
+-        Feature.DEBUG_F_STRINGS,
+-        Feature.NUMERIC_UNDERSCORES,
+-        Feature.TRAILING_COMMA_IN_CALL,
+-        Feature.TRAILING_COMMA_IN_DEF,
+-        Feature.ASYNC_KEYWORDS,
+-        Feature.FUTURE_ANNOTATIONS,
+-        Feature.ASSIGNMENT_EXPRESSIONS,
+-        Feature.RELAXED_DECORATORS,
+-        Feature.POS_ONLY_ARGUMENTS,
+-        Feature.UNPACKING_ON_FLOW,
+-        Feature.ANN_ASSIGN_EXTENDED_RHS,
+-        Feature.PARENTHESIZED_CONTEXT_MANAGERS,
+-        Feature.UNPARENTHESIZED_WALRUS_IN_SETS,
+-        Feature.PATTERN_MATCHING,
+-        Feature.EXCEPT_STAR,
+-        Feature.VARIADIC_GENERICS,
+-        Feature.TYPE_PARAMS,
+-        Feature.TYPE_PARAM_DEFAULTS,
+-        Feature.UNPARENTHESIZED_EXCEPT_TYPES,
+-        Feature.T_STRINGS,
+-        Feature.LAZY_IMPORTS,
+-        Feature.UNPACKING_IN_COMPREHENSIONS,
+-    },
+-}
++class _FeatureChange(NamedTuple):
++    """Features gained and lost by a Python version relative to the previous one."""
++
++    version: TargetVersion
++    added: frozenset[Feature] = frozenset()
++    removed: frozenset[Feature] = frozenset()
++
++
++# Listed in ascending version order: the features supported by a version are those
++# of the previous version, minus `removed`, plus `added`.
++_FEATURE_CHANGES: Final = (
++    _FeatureChange(
++        TargetVersion.PY33,
++        added=frozenset({Feature.ASYNC_IDENTIFIERS}),
++    ),
++    _FeatureChange(TargetVersion.PY34),
++    _FeatureChange(
++        TargetVersion.PY35,
++        added=frozenset({Feature.TRAILING_COMMA_IN_CALL}),
++    ),
++    _FeatureChange(
++        TargetVersion.PY36,
++        added=frozenset({
++            Feature.F_STRINGS,
++            Feature.NUMERIC_UNDERSCORES,
++            Feature.TRAILING_COMMA_IN_DEF,
++        }),
++    ),
++    _FeatureChange(
++        TargetVersion.PY37,
++        added=frozenset({Feature.ASYNC_KEYWORDS, Feature.FUTURE_ANNOTATIONS}),
++        removed=frozenset({Feature.ASYNC_IDENTIFIERS}),
++    ),
++    _FeatureChange(
++        TargetVersion.PY38,
++        added=frozenset({
++            Feature.DEBUG_F_STRINGS,
++            Feature.ASSIGNMENT_EXPRESSIONS,
++            Feature.POS_ONLY_ARGUMENTS,
++            Feature.UNPACKING_ON_FLOW,
++            Feature.ANN_ASSIGN_EXTENDED_RHS,
++        }),
++    ),
++    _FeatureChange(
++        TargetVersion.PY39,
++        added=frozenset({
++            Feature.RELAXED_DECORATORS,
++            Feature.PARENTHESIZED_CONTEXT_MANAGERS,
++        }),
++    ),
++    _FeatureChange(
++        TargetVersion.PY310,
++        added=frozenset({
++            Feature.UNPARENTHESIZED_WALRUS_IN_SETS,
++            Feature.PATTERN_MATCHING,
++        }),
++    ),
++    _FeatureChange(
++        TargetVersion.PY311,
++        added=frozenset({Feature.EXCEPT_STAR, Feature.VARIADIC_GENERICS}),
++    ),
++    _FeatureChange(
++        TargetVersion.PY312,
++        added=frozenset({Feature.TYPE_PARAMS}),
++    ),
++    _FeatureChange(
++        TargetVersion.PY313,
++        added=frozenset({Feature.TYPE_PARAM_DEFAULTS}),
++    ),
++    _FeatureChange(
++        TargetVersion.PY314,
++        added=frozenset({
++            Feature.UNPARENTHESIZED_EXCEPT_TYPES,
++            Feature.T_STRINGS,
++        }),
++    ),
++    _FeatureChange(
++        TargetVersion.PY315,
++        added=frozenset({
++            Feature.LAZY_IMPORTS,
++            Feature.UNPACKING_IN_COMPREHENSIONS,
++        }),
++    ),
++)
++
++
++def _build_version_to_features() -> dict[TargetVersion, set[Feature]]:
++    """Accumulate `_FEATURE_CHANGES` into the full feature set of each version.
++
++    Every version gets its own independent (mutable) set.
++    """
++    version_to_features: dict[TargetVersion, set[Feature]] = {}
++    current: set[Feature] = set()
++    for change in _FEATURE_CHANGES:
++        current = (current - change.removed) | change.added
++        version_to_features[change.version] = set(current)
++    return version_to_features
++
++
++VERSION_TO_FEATURES: dict[TargetVersion, set[Feature]] = _build_version_to_features()
+ 
+ 
+ def supports_feature(target_versions: set[TargetVersion], feature: Feature) -> bool:
+@@ -299,6 +226,11 @@
+ _MAX_CACHE_KEY_PART_LENGTH: Final = 32
+ 
+ 
++def _short_digest(text: str) -> str:
++    """Return a SHA-256 hex digest of `text`, truncated to fit a cache key part."""
++    return sha256(text.encode()).hexdigest()[:_MAX_CACHE_KEY_PART_LENGTH]
++
++
+ @dataclass
+ class Mode:
+     target_versions: set[TargetVersion] = field(default_factory=set)
+@@ -336,27 +268,28 @@
+         else:
+             version_str = "-"
+         if len(version_str) > _MAX_CACHE_KEY_PART_LENGTH:
+-            version_str = sha256(version_str.encode()).hexdigest()[
+-                :_MAX_CACHE_KEY_PART_LENGTH
+-            ]
+-        features_and_magics = (
++            version_str = _short_digest(version_str)
++
++        features_and_magics = _short_digest(
+             ",".join(sorted(f.name for f in self.enabled_features))
+             + "@"
+             + ",".join(sorted(self.python_cell_magics))
+         )
+-        features_and_magics = sha256(features_and_magics.encode()).hexdigest()[
+-            :_MAX_CACHE_KEY_PART_LENGTH
+-        ]
++
++        # The order of these flags is part of the cache key format.
++        boolean_options = (
++            self.string_normalization,
++            self.is_pyi,
++            self.is_ipynb,
++            self.skip_source_first_line,
++            self.magic_trailing_comma,
++            self.preview,
++            self.unstable,
++        )
+         parts = [
+             version_str,
+             str(self.line_length),
+-            str(int(self.string_normalization)),
+-            str(int(self.is_pyi)),
+-            str(int(self.is_ipynb)),
+-            str(int(self.skip_source_first_line)),
+-            str(int(self.magic_trailing_comma)),
+-            str(int(self.preview)),
+-            str(int(self.unstable)),
++            *(str(int(option)) for option in boolean_options),
+             features_and_magics,
+         ]
+         return ".".join(parts)

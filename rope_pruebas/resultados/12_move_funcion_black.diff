@@ -1,5 +1,5 @@
---- src/black/files.py	2026-10-30 15:28:15.223195+00:00
-+++ src/black/files.py	2026-10-30 15:34:55.281008+00:00
+--- src/black/files.py	2026-11-13 19:03:25.179434+00:00
++++ src/black/files.py	2026-11-13 19:08:48.077016+00:00
 @@ -26,10 +26,11 @@
      """
      if "\n" in regex:
@@ -12,8 +12,8 @@
      try:
          import tomllib
      except ImportError:
---- src/black/__init__.py	2026-10-30 15:28:15.208670+00:00
-+++ src/black/__init__.py	2026-10-30 15:34:55.663749+00:00
+--- src/black/__init__.py	2026-11-13 19:03:25.184456+00:00
++++ src/black/__init__.py	2026-11-13 19:08:48.446064+00:00
 @@ -35,11 +35,24 @@
      DEFAULT_EXCLUDES,
      DEFAULT_INCLUDES,

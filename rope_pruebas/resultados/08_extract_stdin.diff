@@ -1,4 +1,4 @@
-Extract method <_detect_stdin> - today 10:26:46 :
+Extract method <_detect_stdin> - today 14:01:44 :
 
 
 --- a/src/black/__init__.py

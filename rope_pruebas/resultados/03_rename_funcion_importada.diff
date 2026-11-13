@@ -1,26 +1,5 @@
-Renaming <parse_line_ranges> to <parse_line_range_specs> - today 10:24:20 :
+Renaming <parse_line_ranges> to <parse_line_range_specs> - today 13:59:07 :
 
-
---- a/src/black/__init__.py
-+++ b/src/black/__init__.py
-@@ -77,7 +77,7 @@
- from black.ranges import (
-     adjusted_lines,
-     convert_unchanged_lines,
--    parse_line_ranges,
-+    parse_line_range_specs,
-     sanitized_lines,
- )
- from black.report import Changed, NothingChanged, Report
-@@ -751,7 +751,7 @@
-             ctx.exit(1)
- 
-         try:
--            lines = parse_line_ranges(line_ranges)
-+            lines = parse_line_range_specs(line_ranges)
-         except ValueError as e:
-             err(str(e))
-             ctx.exit(1)
 
 --- a/tests/util.py
 +++ b/tests/util.py
@@ -54,6 +33,27 @@ Renaming <parse_line_ranges> to <parse_line_range_specs> - today 10:24:20 :
      lines: list[tuple[int, int]] = []
      for lines_str in line_ranges:
          parts = lines_str.split("-")
+
+--- a/src/black/__init__.py
++++ b/src/black/__init__.py
+@@ -77,7 +77,7 @@
+ from black.ranges import (
+     adjusted_lines,
+     convert_unchanged_lines,
+-    parse_line_ranges,
++    parse_line_range_specs,
+     sanitized_lines,
+ )
+ from black.report import Changed, NothingChanged, Report
+@@ -751,7 +751,7 @@
+             ctx.exit(1)
+ 
+         try:
+-            lines = parse_line_ranges(line_ranges)
++            lines = parse_line_range_specs(line_ranges)
+         except ValueError as e:
+             err(str(e))
+             ctx.exit(1)
 
 --- a/tests/test_ranges.py
 +++ b/tests/test_ranges.py

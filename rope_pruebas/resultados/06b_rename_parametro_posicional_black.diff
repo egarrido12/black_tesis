@@ -1,5 +1,5 @@
---- src/black/__init__.py	2026-10-30 15:25:51.568014+00:00
-+++ src/black/__init__.py	2026-10-30 15:33:42.142027+00:00
+--- src/black/__init__.py	2026-11-13 19:00:48.043388+00:00
++++ src/black/__init__.py	2026-11-13 19:07:34.961522+00:00
 @@ -1273,13 +1273,11 @@
      if source == dst_contents:
          raise NothingChanged

@@ -1,0 +1,776 @@
+--- a/src/black/trans.py
++++ b/src/black/trans.py
+@@ -59,6 +59,30 @@
+ 
+ SPLIT_SAFE_CHARS = frozenset(["\u3001", "\u3002", "\uff0c"])  # East Asian stops
+ 
++# Tokens that, when found right before a parenthesized string containing a `%`
++# operation, bind at least as tightly as `%`, so the parentheses can't be stripped.
++_TOKENS_BINDING_TIGHTER_THAN_PERCENT_BEFORE_LPAR: Final = {
++    token.STAR,
++    token.AT,
++    token.SLASH,
++    token.DOUBLESLASH,
++    token.PERCENT,
++    token.TILDE,
++    token.DOUBLESTAR,
++    token.AWAIT,
++    token.LSQB,
++    token.LPAR,
++}
++
++# Tokens that, when found right after the closing parenthesis of a parenthesized
++# string, bind tighter than `%`, so the parentheses can't be stripped.
++_TOKENS_BINDING_TIGHTER_THAN_PERCENT_AFTER_RPAR: Final = {
++    token.DOUBLESTAR,
++    token.LSQB,
++    token.LPAR,
++    token.DOT,
++}
++
+ 
+ def TErr(err_msg: str) -> Err[CannotTransform]:
+     """(T)ransform Err
+@@ -67,6 +91,65 @@
+     """
+     cant_transform = CannotTransform(err_msg)
+     return Err(cant_transform)
++
++
++def _end_of_string_run(leaves: Sequence[Leaf], start: int) -> int:
++    """Return the index of the first non-STRING leaf at or after `start`.
++
++    If every leaf from `start` on is a STRING, `len(leaves)` is returned.
++    """
++    idx = start
++    while idx < len(leaves) and leaves[idx].type == token.STRING:
++        idx += 1
++    return idx
++
++
++def _last_string_index_in_run(leaves: Sequence[Leaf], start: int) -> int:
++    """Return the index of the last STRING of the run of strings starting at `start`.
++
++    Pre-conditions:
++        * @leaves[@start].type == token.STRING
++    """
++    return _end_of_string_run(leaves, start) - 1
++
++
++def _string_idx_after_first_leaf(leaves: list[Leaf]) -> int | None:
++    """Return the index of the string that follows the first leaf, if any.
++
++    An empty (invisible) parenthesis right after the first leaf is skipped.
++    """
++    is_valid_index = is_valid_index_factory(leaves)
++
++    idx = 2 if is_valid_index(1) and is_empty_par(leaves[1]) else 1
++    # The next visible leaf MUST contain a string...
++    if is_valid_index(idx) and leaves[idx].type == token.STRING:
++        return idx
++
++    return None
++
++
++def _string_run_has_inline_comment(line: Line, start: int) -> bool:
++    """Does any string of the run of strings starting at `start` have a comment?"""
++    leaves = line.leaves
++    for idx in range(start, len(leaves)):
++        if leaves[idx].type != token.STRING:
++            return False
++        if line.comments_after(leaves[idx]):
++            return True
++    return False
++
++
++def _binds_tighter_than_percent(leaf: Leaf) -> bool:
++    """Is `leaf` an operator that binds at least as tightly as a `%` after it?"""
++    if leaf.type in _TOKENS_BINDING_TIGHTER_THAN_PERCENT_BEFORE_LPAR:
++        return True
++
++    # only unary PLUS/MINUS
++    return bool(
++        leaf.parent
++        and leaf.parent.type == syms.factor
++        and leaf.type in {token.PLUS, token.MINUS}
++    )
+ 
+ 
+ # Remove when `simplify_power_operator_hugging` becomes stable.
+@@ -445,32 +528,20 @@
+                 and is_valid_index(idx + 1)
+                 and LL[idx + 1].type == token.STRING
+             ):
+-                # Let's check if the string group contains an inline comment
+-                # If we have a comment inline, we don't merge the strings
+-                contains_comment = False
+-                i = idx
+-                while is_valid_index(i):
+-                    if LL[i].type != token.STRING:
+-                        break
+-                    if line.comments_after(LL[i]):
+-                        contains_comment = True
+-                        break
+-                    i += 1
+-
+-                if not contains_comment and not is_part_of_annotation(leaf):
++                # If we have an inline comment in the string group, we don't merge
++                # the strings.
++                if not _string_run_has_inline_comment(
++                    line, idx
++                ) and not is_part_of_annotation(leaf):
+                     string_indices.append(idx)
+ 
+                 # Advance to the next non-STRING leaf.
+-                idx += 2
+-                while is_valid_index(idx) and LL[idx].type == token.STRING:
+-                    idx += 1
++                idx = _end_of_string_run(LL, idx)
+ 
+             elif leaf.type == token.STRING and "\\\n" in leaf.value:
+                 string_indices.append(idx)
+                 # Advance to the next non-STRING leaf.
+-                idx += 1
+-                while is_valid_index(idx) and LL[idx].type == token.STRING:
+-                    idx += 1
++                idx = _end_of_string_run(LL, idx)
+ 
+             else:
+                 idx += 1
+@@ -706,55 +777,49 @@
+             prefix = get_string_prefix(LL[next_str_idx].value).lower()
+             next_str_idx += 1
+ 
+-        # The next loop merges the string group. The final string will be
+-        # contained in 'S'.
+-        #
+-        # The following convenience variables are used:
+-        #
+-        #   S: string
+-        #   NS: naked string
+-        #   SS: next string
+-        #   NSS: naked next string
+-        NS = ""
++        # The next loop merges the string group. The naked merged value is
++        # accumulated in 'merged_naked_value'.
++        merged_naked_value = ""
+         num_of_strings = 0
+         next_str_idx = string_idx
+         while is_valid_index(next_str_idx) and LL[next_str_idx].type == token.STRING:
+             num_of_strings += 1
+ 
+-            SS = LL[next_str_idx].value
+-            next_prefix = get_string_prefix(SS).lower()
++            next_string = LL[next_str_idx].value
++            next_prefix = get_string_prefix(next_string).lower()
+ 
+             # If this is an f-string group but this substring is not prefixed
+             # with 'f'...
+             if "f" in prefix and "f" not in next_prefix:
+                 # Then we must escape any braces contained in this substring.
+-                SS = re.sub(r"(\{|\})", r"\1\1", SS)
+-
+-            NSS = make_naked(SS, next_prefix)
++                next_string = re.sub(r"(\{|\})", r"\1\1", next_string)
++
++            naked_next_string = make_naked(next_string, next_prefix)
+ 
+             has_prefix = bool(next_prefix)
+             prefix_tracker.append(has_prefix)
+ 
+-            # Each NSS is already naked (prefix and quotes stripped, inner quotes
+-            # escaped, f-string expression quotes toggled), and the parts are
+-            # separated by BREAK_MARK which contains no quote or backslash, so the
+-            # naked group is just their concatenation. Re-running make_naked over the
+-            # whole accumulated string on every iteration rescans all previously
+-            # merged substrings, which is quadratic in the size of the group.
+-            NS = NS + NSS + BREAK_MARK
++            # Each naked_next_string is already naked (prefix and quotes stripped,
++            # inner quotes escaped, f-string expression quotes toggled), and the
++            # parts are separated by BREAK_MARK which contains no quote or
++            # backslash, so the naked group is just their concatenation. Re-running
++            # make_naked over the whole accumulated string on every iteration
++            # rescans all previously merged substrings, which is quadratic in the
++            # size of the group.
++            merged_naked_value = merged_naked_value + naked_next_string + BREAK_MARK
+ 
+             next_str_idx += 1
+ 
+         # Take a note on the index of the non-STRING leaf.
+         non_string_idx = next_str_idx
+ 
+-        S = prefix + QUOTE + NS + QUOTE
+-        S_leaf = Leaf(token.STRING, S)
++        merged_value = prefix + QUOTE + merged_naked_value + QUOTE
++        merged_leaf = Leaf(token.STRING, merged_value)
+         if self.normalize_strings:
+-            S_leaf.value = normalize_string_quotes(S_leaf.value)
++            merged_leaf.value = normalize_string_quotes(merged_leaf.value)
+ 
+         # Fill the 'custom_splits' list with the appropriate CustomSplit objects.
+-        temp_string = S_leaf.value[len(prefix) + 1 : -1]
++        temp_string = merged_leaf.value[len(prefix) + 1 : -1]
+         for has_prefix in prefix_tracker:
+             mark_idx = temp_string.find(BREAK_MARK)
+             assert (
+@@ -765,7 +830,7 @@
+             breakpoint_idx = mark_idx + (len(prefix) if has_prefix else 0) + 1
+             custom_splits.append(CustomSplit(has_prefix, breakpoint_idx))
+ 
+-        string_leaf = Leaf(token.STRING, S_leaf.value.replace(BREAK_MARK, ""))
++        string_leaf = Leaf(token.STRING, merged_leaf.value.replace(BREAK_MARK, ""))
+ 
+         if atom_node is not None:
+             # If not all children of the atom node are merged (this can happen
+@@ -783,6 +848,48 @@
+ 
+         self.add_custom_splits(string_leaf.value, custom_splits)
+         return num_of_strings, string_leaf
++
++    @staticmethod
++    def _has_inner_standalone_comment(line: Line, string_idx: int) -> bool:
++        """Is the string group at `string_idx` split by a stand-alone comment?
++
++        That is, is there a stand-alone comment that has a string leaf before it
++        AND after it?
++        """
++        is_valid_index = is_valid_index_factory(line.leaves)
++        for inc in [1, -1]:
++            i = string_idx
++            found_sa_comment = False
++            while is_valid_index(i) and line.leaves[i].type in [
++                token.STRING,
++                STANDALONE_COMMENT,
++            ]:
++                if line.leaves[i].type == STANDALONE_COMMENT:
++                    found_sa_comment = True
++                elif found_sa_comment:
++                    return True
++
++                i += inc
++
++        return False
++
++    @staticmethod
++    def _pragma_comment_follows_group(line: Line, group_end_idx: int) -> bool:
++        """Does a pragma comment follow the string group ending before `group_end_idx`?
++
++        Looks at the leaves after the group (e.g. closing brackets) too.
++        """
++        LL = line.leaves
++        for idx in range(group_end_idx, len(LL)):
++            next_leaf = LL[idx]
++            if id(next_leaf) in line.comments and contains_pragma_comment(
++                line.comments[id(next_leaf)]
++            ):
++                return True
++            if next_leaf.type not in CLOSING_BRACKETS:
++                break
++
++        return False
+ 
+     def _validate_msg(self, line: Line, string_idx: int) -> TResult[None]:
+         """Validate (M)erge (S)tring (G)roup
+@@ -811,23 +918,11 @@
+         """
+         # We first check for "inner" stand-alone comments (i.e. stand-alone
+         # comments that have a string leaf before them AND after them).
+-        for inc in [1, -1]:
+-            i = string_idx
+-            found_sa_comment = False
+-            is_valid_index = is_valid_index_factory(line.leaves)
+-            while is_valid_index(i) and line.leaves[i].type in [
+-                token.STRING,
+-                STANDALONE_COMMENT,
+-            ]:
+-                if line.leaves[i].type == STANDALONE_COMMENT:
+-                    found_sa_comment = True
+-                elif found_sa_comment:
+-                    return TErr(
+-                        "StringMerger does NOT merge string groups which contain "
+-                        "stand-alone comments."
+-                    )
+-
+-                i += inc
++        if self._has_inner_standalone_comment(line, string_idx):
++            return TErr(
++                "StringMerger does NOT merge string groups which contain "
++                "stand-alone comments."
++            )
+ 
+         QUOTE = line.leaves[string_idx].value[-1]
+ 
+@@ -882,19 +977,11 @@
+         # group (e.g. a closing bracket).  Merging strings when a pragma
+         # comment like `# type: ignore` follows would produce an unsplittable
+         # long line.
+-        is_valid_index = is_valid_index_factory(line.leaves)
+-        next_idx = string_idx + num_of_strings
+-        while is_valid_index(next_idx):
+-            next_leaf = line.leaves[next_idx]
+-            if id(next_leaf) in line.comments:
+-                if contains_pragma_comment(line.comments[id(next_leaf)]):
+-                    return TErr(
+-                        "Cannot merge strings when a pragma comment follows"
+-                        " the string group."
+-                    )
+-            if next_leaf.type not in CLOSING_BRACKETS:
+-                break
+-            next_idx += 1
++        if self._pragma_comment_follows_group(line, string_idx + num_of_strings):
++            return TErr(
++                "Cannot merge strings when a pragma comment follows"
++                " the string group."
++            )
+ 
+         if num_of_inline_string_comments > 1:
+             return TErr(
+@@ -943,121 +1030,104 @@
+     def do_match(self, line: Line) -> TMatchResult:
+         LL = line.leaves
+ 
+-        is_valid_index = is_valid_index_factory(LL)
+-
+         string_indices = []
+ 
+-        idx = -1
+-        while True:
++        idx = 0
++        while idx < len(LL):
++            if self._is_strippable_parenthesized_string(line, idx):
++                string_indices.append(idx)
++                idx = _last_string_index_in_run(LL, idx)
+             idx += 1
+-            if idx >= len(LL):
+-                break
+-            leaf = LL[idx]
+-
+-            # Should be a string...
+-            if leaf.type != token.STRING:
+-                continue
+-
+-            # If this is a "pointless" string...
+-            if (
+-                leaf.parent
+-                and leaf.parent.parent
+-                and leaf.parent.parent.type == syms.simple_stmt
+-            ):
+-                continue
+-
+-            # Should be preceded by a non-empty LPAR...
+-            if (
+-                not is_valid_index(idx - 1)
+-                or LL[idx - 1].type != token.LPAR
+-                or is_empty_lpar(LL[idx - 1])
+-            ):
+-                continue
+-
+-            # That LPAR should NOT be preceded by a colon (which could be a
+-            # dictionary value), function name, or a closing bracket (which
+-            # could be a function returning a function or a list/dictionary
+-            # containing a function)...
+-            if is_valid_index(idx - 2) and (
+-                LL[idx - 2].type == token.COLON
+-                or LL[idx - 2].type == token.NAME
+-                or LL[idx - 2].type in CLOSING_BRACKETS
+-            ):
+-                continue
+-
+-            string_idx = idx
+-
+-            # Skip the string trailer, if one exists.
+-            string_parser = StringParser()
+-            next_idx = string_parser.parse(LL, string_idx)
+-
+-            # if the leaves in the parsed string include a PERCENT, we need to
+-            # make sure the initial LPAR is NOT preceded by an operator with
+-            # higher or equal precedence to PERCENT
+-            if is_valid_index(idx - 2):
+-                # mypy can't quite follow unless we name this
+-                before_lpar = LL[idx - 2]
+-                if token.PERCENT in {leaf.type for leaf in LL[idx - 1 : next_idx]} and (
+-                    (
+-                        before_lpar.type in {
+-                            token.STAR,
+-                            token.AT,
+-                            token.SLASH,
+-                            token.DOUBLESLASH,
+-                            token.PERCENT,
+-                            token.TILDE,
+-                            token.DOUBLESTAR,
+-                            token.AWAIT,
+-                            token.LSQB,
+-                            token.LPAR,
+-                        }
+-                    )
+-                    or (
+-                        # only unary PLUS/MINUS
+-                        before_lpar.parent
+-                        and before_lpar.parent.type == syms.factor
+-                        and (before_lpar.type in {token.PLUS, token.MINUS})
+-                    )
+-                ):
+-                    continue
+-
+-            # Should be followed by a non-empty RPAR...
+-            if (
+-                is_valid_index(next_idx)
+-                and LL[next_idx].type == token.RPAR
+-                and not is_empty_rpar(LL[next_idx])
+-            ):
+-                # That RPAR should NOT be followed by anything with higher
+-                # precedence than PERCENT
+-                if is_valid_index(next_idx + 1) and LL[next_idx + 1].type in {
+-                    token.DOUBLESTAR,
+-                    token.LSQB,
+-                    token.LPAR,
+-                    token.DOT,
+-                }:
+-                    continue
+-
+-                # Keep the parens if stripping them would leave an already
+-                # too-long line with a merged string group glued to an `=`
+-                # prefix (e.g. a def parameter default). Black cannot split
+-                # such a line after the fact, while the parens let the layout
+-                # split the group at its custom breakpoints. See #3497.
+-                if (
+-                    not is_line_short_enough(line, mode=line.mode)
+-                    and is_valid_index(string_idx - 2)
+-                    and LL[string_idx - 2].type == token.EQUAL
+-                    and self.has_custom_splits(LL[string_idx].value)
+-                ):
+-                    continue
+-
+-                string_indices.append(string_idx)
+-                idx = string_idx
+-                while idx < len(LL) - 1 and LL[idx + 1].type == token.STRING:
+-                    idx += 1
+ 
+         if string_indices:
+             return Ok(string_indices)
+         return TErr("This line has no strings wrapped in parens.")
++
++    def _is_strippable_parenthesized_string(self, line: Line, string_idx: int) -> bool:
++        """Is `line.leaves[string_idx]` a string whose parentheses can be stripped?
++
++        See the 'Requirements' section of this class's docstring.
++        """
++        LL = line.leaves
++
++        is_valid_index = is_valid_index_factory(LL)
++
++        leaf = LL[string_idx]
++
++        # Should be a string...
++        if leaf.type != token.STRING:
++            return False
++
++        # If this is a "pointless" string...
++        if (
++            leaf.parent
++            and leaf.parent.parent
++            and leaf.parent.parent.type == syms.simple_stmt
++        ):
++            return False
++
++        # Should be preceded by a non-empty LPAR...
++        if (
++            not is_valid_index(string_idx - 1)
++            or LL[string_idx - 1].type != token.LPAR
++            or is_empty_lpar(LL[string_idx - 1])
++        ):
++            return False
++
++        # That LPAR should NOT be preceded by a colon (which could be a
++        # dictionary value), function name, or a closing bracket (which
++        # could be a function returning a function or a list/dictionary
++        # containing a function)...
++        if is_valid_index(string_idx - 2) and (
++            LL[string_idx - 2].type == token.COLON
++            or LL[string_idx - 2].type == token.NAME
++            or LL[string_idx - 2].type in CLOSING_BRACKETS
++        ):
++            return False
++
++        # Skip the string trailer, if one exists.
++        next_idx = StringParser().parse(LL, string_idx)
++
++        # if the leaves in the parsed string include a PERCENT, we need to
++        # make sure the initial LPAR is NOT preceded by an operator with
++        # higher or equal precedence to PERCENT
++        if (
++            is_valid_index(string_idx - 2)
++            and token.PERCENT in {l.type for l in LL[string_idx - 1 : next_idx]}
++            and _binds_tighter_than_percent(LL[string_idx - 2])
++        ):
++            return False
++
++        # Should be followed by a non-empty RPAR...
++        if not (
++            is_valid_index(next_idx)
++            and LL[next_idx].type == token.RPAR
++            and not is_empty_rpar(LL[next_idx])
++        ):
++            return False
++
++        # That RPAR should NOT be followed by anything with higher
++        # precedence than PERCENT
++        if (
++            is_valid_index(next_idx + 1)
++            and LL[next_idx + 1].type in _TOKENS_BINDING_TIGHTER_THAN_PERCENT_AFTER_RPAR
++        ):
++            return False
++
++        # Keep the parens if stripping them would leave an already
++        # too-long line with a merged string group glued to an `=`
++        # prefix (e.g. a def parameter default). Black cannot split
++        # such a line after the fact, while the parens let the layout
++        # split the group at its custom breakpoints. See #3497.
++        if (
++            not is_line_short_enough(line, mode=line.mode)
++            and is_valid_index(string_idx - 2)
++            and LL[string_idx - 2].type == token.EQUAL
++            and self.has_custom_splits(LL[string_idx].value)
++        ):
++            return False
++
++        return True
+ 
+     def do_transform(
+         self, line: Line, string_indices: list[int]
+@@ -1066,8 +1136,7 @@
+ 
+         string_and_rpar_indices: list[int] = []
+         for string_idx in string_indices:
+-            string_parser = StringParser()
+-            rpar_idx = string_parser.parse(LL, string_idx)
++            rpar_idx = StringParser().parse(LL, string_idx)
+ 
+             should_transform = True
+             for leaf in (LL[string_idx - 1], LL[rpar_idx]):
+@@ -1651,8 +1720,7 @@
+         string_idx = idx
+ 
+         # Skip the string trailer, if one exists.
+-        string_parser = StringParser()
+-        idx = string_parser.parse(LL, string_idx)
++        idx = StringParser().parse(LL, string_idx)
+ 
+         # That string MAY be followed by an empty RPAR...
+         if is_valid_index(idx) and is_empty_rpar(LL[idx]):
+@@ -2106,55 +2174,83 @@
+                     " StringSplitter."
+                 )
+ 
+-        if string_idx is not None:
+-            # If the string is implicitly concatenated with a string on another
+-            # line (e.g. raw strings, which StringMerger leaves alone), wrapping
+-            # it in parens on its own would produce invalid code.
+-            next_sibling = LL[string_idx].next_sibling
+-            if next_sibling is not None and next_sibling.type == token.STRING:
+-                if not any(leaf is next_sibling for leaf in LL):
+-                    return TErr(
+-                        "Cannot wrap a string that is implicitly concatenated with a"
+-                        " string on another line."
+-                    )
+-
+-                # Wrapping would move the first string's comments to the LPAR.
+-                if line.comments:
+-                    return TErr(
+-                        "Cannot wrap an implicit concatenation that has comments."
+-                    )
+-
+-                # If the first string fits on the line, splitting at the
+-                # concatenation is enough.
+-                tail = "".join(str(leaf) for leaf in LL[string_idx + 1 :])
+-                if (
+-                    str_width(line_to_string(line)) - str_width(tail)
+-                    <= self.line_length
+-                ):
+-                    return TErr(
+-                        "The first string of the implicit concatenation fits on"
+-                        " the line."
+-                    )
+-
+-            string_value = line.leaves[string_idx].value
+-            # If the string has neither spaces nor East Asian stops...
+-            if not any(
+-                char == " " or char in SPLIT_SAFE_CHARS for char in string_value
+-            ):
+-                # And will still violate the line length limit when split...
+-                max_string_width = self.line_length - ((line.depth + 1) * 4)
+-                if str_width(string_value) > max_string_width:
+-                    # And has no associated custom splits...
+-                    if not self.has_custom_splits(string_value):
+-                        # Then we should NOT put this string on its own line.
+-                        return TErr(
+-                            "We do not wrap long strings in parentheses when the"
+-                            " resultant line would still be over the specified line"
+-                            " length and can't be split further by StringSplitter."
+-                        )
+-            return Ok([string_idx])
+-
+-        return TErr("This line does not contain any non-atomic strings.")
++        if string_idx is None:
++            return TErr("This line does not contain any non-atomic strings.")
++
++        concatenation_result = self._validate_implicit_concatenation(line, string_idx)
++        if isinstance(concatenation_result, Err):
++            return concatenation_result
++
++        length_result = self._validate_unsplittable_string_length(line, string_idx)
++        if isinstance(length_result, Err):
++            return length_result
++
++        return Ok([string_idx])
++
++    def _validate_implicit_concatenation(
++        self, line: Line, string_idx: int
++    ) -> TResult[None]:
++        """
++        Checks that wrapping the string at @string_idx in parentheses would not
++        break an implicit concatenation with a string on another line.
++        """
++        LL = line.leaves
++
++        # If the string is implicitly concatenated with a string on another
++        # line (e.g. raw strings, which StringMerger leaves alone), wrapping
++        # it in parens on its own would produce invalid code.
++        next_sibling = LL[string_idx].next_sibling
++        if next_sibling is None or next_sibling.type != token.STRING:
++            return Ok(None)
++
++        if not any(leaf is next_sibling for leaf in LL):
++            return TErr(
++                "Cannot wrap a string that is implicitly concatenated with a"
++                " string on another line."
++            )
++
++        # Wrapping would move the first string's comments to the LPAR.
++        if line.comments:
++            return TErr("Cannot wrap an implicit concatenation that has comments.")
++
++        # If the first string fits on the line, splitting at the
++        # concatenation is enough.
++        tail = "".join(str(leaf) for leaf in LL[string_idx + 1 :])
++        if str_width(line_to_string(line)) - str_width(tail) <= self.line_length:
++            return TErr(
++                "The first string of the implicit concatenation fits on the line."
++            )
++
++        return Ok(None)
++
++    def _validate_unsplittable_string_length(
++        self, line: Line, string_idx: int
++    ) -> TResult[None]:
++        """
++        Checks that putting the string at @string_idx on its own line is worthwhile:
++        i.e. that it either can be split (it has spaces, East Asian stops or custom
++        splits) or fits on that line.
++        """
++        string_value = line.leaves[string_idx].value
++        # If the string has neither spaces nor East Asian stops...
++        if any(char == " " or char in SPLIT_SAFE_CHARS for char in string_value):
++            return Ok(None)
++
++        # And will still violate the line length limit when split...
++        max_string_width = self.line_length - ((line.depth + 1) * 4)
++        if str_width(string_value) <= max_string_width:
++            return Ok(None)
++
++        # And has no associated custom splits...
++        if self.has_custom_splits(string_value):
++            return Ok(None)
++
++        # Then we should NOT put this string on its own line.
++        return TErr(
++            "We do not wrap long strings in parentheses when the"
++            " resultant line would still be over the specified line"
++            " length and can't be split further by StringSplitter."
++        )
+ 
+     def _wrapped_line_can_fit(self, line: Line, string_idx: int) -> bool:
+         """
+@@ -2188,12 +2284,7 @@
+         if parent_type(LL[0]) in [syms.return_stmt, syms.yield_expr] and LL[
+             0
+         ].value in ["return", "yield"]:
+-            is_valid_index = is_valid_index_factory(LL)
+-
+-            idx = 2 if is_valid_index(1) and is_empty_par(LL[1]) else 1
+-            # The next visible leaf MUST contain a string...
+-            if is_valid_index(idx) and LL[idx].type == token.STRING:
+-                return idx
++            return _string_idx_after_first_leaf(LL)
+ 
+         return None
+ 
+@@ -2242,12 +2333,7 @@
+             and LL[0].type == token.NAME
+             and LL[0].value == "else"
+         ):
+-            is_valid_index = is_valid_index_factory(LL)
+-
+-            idx = 2 if is_valid_index(1) and is_empty_par(LL[1]) else 1
+-            # The next visible leaf MUST contain a string...
+-            if is_valid_index(idx) and LL[idx].type == token.STRING:
+-                return idx
++            return _string_idx_after_first_leaf(LL)
+ 
+         return None
+ 
+@@ -2277,8 +2363,7 @@
+                         string_idx = idx
+ 
+                         # Skip the string trailer, if one exists.
+-                        string_parser = StringParser()
+-                        idx = string_parser.parse(LL, string_idx)
++                        idx = StringParser().parse(LL, string_idx)
+ 
+                         # But no more leaves are allowed...
+                         if not is_valid_index(idx):
+@@ -2315,14 +2400,10 @@
+                         string_idx = idx
+ 
+                         # Skip any strings implicitly concatenated with it.
+-                        while (
+-                            is_valid_index(idx + 1) and LL[idx + 1].type == token.STRING
+-                        ):
+-                            idx += 1
++                        idx = _last_string_index_in_run(LL, idx)
+ 
+                         # Skip the string trailer, if one exists.
+-                        string_parser = StringParser()
+-                        idx = string_parser.parse(LL, idx)
++                        idx = StringParser().parse(LL, idx)
+ 
+                         # The next leaf MAY be a comma iff this line is a part
+                         # of a function argument...
+@@ -2379,9 +2460,7 @@
+     @staticmethod
+     def _binary_operand_end(LL: list[Leaf], string_idx: int) -> int:
+         """Find the string's trailer without absorbing a following % operation."""
+-        idx = string_idx
+-        while idx + 1 < len(LL) and LL[idx + 1].type == token.STRING:
+-            idx += 1
++        idx = _last_string_index_in_run(LL, string_idx)
+         trailer_idx = idx + 1
+         while trailer_idx < len(LL) and is_empty_par(LL[trailer_idx]):
+             trailer_idx += 1
+@@ -2415,14 +2494,10 @@
+                         string_idx = idx
+ 
+                         # Skip any strings implicitly concatenated with it.
+-                        while (
+-                            is_valid_index(idx + 1) and LL[idx + 1].type == token.STRING
+-                        ):
+-                            idx += 1
++                        idx = _last_string_index_in_run(LL, idx)
+ 
+                         # Skip the string trailer, if one exists.
+-                        string_parser = StringParser()
+-                        idx = string_parser.parse(LL, idx)
++                        idx = StringParser().parse(LL, idx)
+ 
+                         # That string MAY be followed by a comma...
+                         if is_valid_index(idx) and LL[idx].type == token.COMMA:

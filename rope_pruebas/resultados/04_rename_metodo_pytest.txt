@@ -11,7 +11,7 @@ ss......................................................                 [100%]
 =================================== FAILURES ===================================
 _______________ test_fmt_off_reindent_reports_black_not_the_user _______________
 
-tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_fmt_off_reindent_reports_0')
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_fmt_off_reindent_reports_0')
 
     def test_fmt_off_reindent_reports_black_not_the_user(tmp_path: Path) -> None:
         """Black must own the error when its own output fails to parse.
@@ -45,14 +45,14 @@ tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/p
         # read as part of it rather than as a syntax error in the user's file
 >       assert result.stderr.startswith("error: INTERNAL ERROR:")
 E       assert False
-E        +  where False = <built-in method startswith of str object at 0x12a890600>('error: INTERNAL ERROR:')
-E        +    where <built-in method startswith of str object at 0x12a890600> = "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...dent_reports_0/reindent.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n".startswith
-E        +      where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...dent_reports_0/reindent.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.stderr
+E        +  where False = <built-in method startswith of str object at 0x14c1ec000>('error: INTERNAL ERROR:')
+E        +    where <built-in method startswith of str object at 0x14c1ec000> = "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...dent_reports_0/reindent.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n".startswith
+E        +      where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...dent_reports_0/reindent.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.stderr
 
 tests/test_black.py:181: AssertionError
 _______________ test_invalid_input_error_includes_path_location ________________
 
-tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_invalid_input_error_inclu0')
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_invalid_input_error_inclu0')
 
     def test_invalid_input_error_includes_path_location(tmp_path: Path) -> None:
         source = tmp_path / "invalid.py"
@@ -70,8 +70,8 @@ tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/p
             "ParseError: bad input\n"
             in result.stderr
         )
-E       assert 'error: cannot parse: /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_invalid_input_error_inclu0/invalid.py:1:7\n    return if you can\n          ^\nParseError: bad input\n' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ut_error_inclu0/invalid.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n"
-E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ut_error_inclu0/invalid.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.stderr
+E       assert 'error: cannot parse: /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_invalid_input_error_inclu0/invalid.py:1:7\n    return if you can\n          ^\nParseError: bad input\n' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...ut_error_inclu0/invalid.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n"
+E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...ut_error_inclu0/invalid.py: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.stderr
 
 tests/test_black.py:197: AssertionError
 ____________________ BlackTestCase.test_bpo_2142_workaround ____________________
@@ -176,7 +176,7 @@ self = <tests.test_black.BlackTestCase testMethod=test_expression_diff_with_colo
         # We check the contents of the diff in `test_expression_diff`. All
         # we need to check here is that color codes exist in the result.
 >       self.assertIn("\033[1m", actual)
-E       AssertionError: '\x1b[1m' not found in "error: cannot format /var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/blk_cjh5tgjh.log: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+E       AssertionError: '\x1b[1m' not found in "error: cannot format /var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/blk_yi20cihz.log: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
 
 tests/test_black.py:441: AssertionError
 ___________________ BlackTestCase.test_github_output_in_cli ____________________
@@ -194,7 +194,7 @@ self = <tests.test_black.BlackTestCase testMethod=test_github_output_in_cli>
 tests/test_black.py:869: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp61csr9n6/test.py']
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpvh2hx5ah/test.py']
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -213,9 +213,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp61csr9n6/test.py']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpvh2hx5ah/test.py']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp61csr9n6/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp61csr9n6/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpvh2hx5ah/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpvh2hx5ah/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -406,7 +406,7 @@ self = <tests.test_black.BlackTestCase testMethod=test_single_file_force_py36>
 tests/test_black.py:1413: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml...olders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpl7sitqz9/file.py', '--target-version=py36', '--target-version=py39', ...]
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml...olders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpaevoje88/file.py', '--target-version=py38', '--target-version=py37', ...]
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -425,9 +425,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpl7sitqz9/file.py', '--target-version=py36', '--target-version=py39', '--target-version=py38', '--target-version=py37']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpaevoje88/file.py', '--target-version=py38', '--target-version=py37', '--target-version=py39', '--target-version=py36']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpl7sitqz9/file.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpl7sitqz9/file.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpaevoje88/file.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpaevoje88/file.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -448,7 +448,7 @@ self = <tests.test_black.BlackTestCase testMethod=test_single_file_force_pyi>
 tests/test_black.py:1363: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmphkwph10k/file.py', '--pyi']
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzgkx5rwe/file.py', '--pyi']
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -467,9 +467,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmphkwph10k/file.py', '--pyi']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzgkx5rwe/file.py', '--pyi']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmphkwph10k/file.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmphkwph10k/file.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzgkx5rwe/file.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzgkx5rwe/file.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -516,9 +516,9 @@ E       AssertionError: 123 != 0
 tests/test_black.py:494: AssertionError
 ___________________ TestCaching.test_cache_dir_option[False] ___________________
 
-self = <tests.test_black.TestCaching object at 0x104ec1e20>
-tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1084d8aa0>
+self = <tests.test_black.TestCaching object at 0x10294db20>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_False_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x103bc3e30>
 multiple_files = False
 
     @pytest.mark.parametrize("multiple_files", [False, True])
@@ -546,7 +546,7 @@ multiple_files = False
 tests/test_black.py:3017: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml...ers/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/cli-cache']
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml...ers/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_False_0/cli-cache']
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -565,9 +565,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/src/one.py', '--cache-dir', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/cli-cache']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_False_0/src/one.py', '--cache-dir', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_False_0/cli-cache']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/src/one.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_False_0/src/one.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_False_0/src/one.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_False_0/src/one.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -575,8 +575,8 @@ E        +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:137: AssertionError
 ____ TestCaching.test_cache_dir_option_does_not_write_grammar_cache_to_env _____
 
-self = <tests.test_black.TestCaching object at 0x104ef59a0>
-tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_does_not0')
+self = <tests.test_black.TestCaching object at 0x102930ec0>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_does_not0')
 
     def test_cache_dir_option_does_not_write_grammar_cache_to_env(
         self, tmp_path: Path
@@ -608,7 +608,7 @@ tests/test_black.py:3038:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 input = None, capture_output = True, timeout = None, check = True
-popenargs = (['/Users/estebangarrido10/black_tesis/.venv/bin/python', '-m', 'black', '/private/var/folders/k_/fsm668d93fnc6932cv0y...k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_does_not0/cli-cache'],)
+popenargs = (['/Users/estebangarrido10/black_tesis/.venv/bin/python', '-m', 'black', '/private/var/folders/k_/fsm668d93fnc6932cv0y...k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_does_not0/cli-cache'],)
 kwargs = {'env': {'COMMAND_MODE': 'unix2003', 'HOME': '/Users/estebangarrido10', 'HOMEBREW_CELLAR': '/opt/homebrew/Cellar', 'HOMEBREW_PREFIX': '/opt/homebrew', ...}, 'stdout': -1, 'stderr': -1}
 
     def run(*popenargs,
@@ -678,13 +678,13 @@ kwargs = {'env': {'COMMAND_MODE': 'unix2003', 'HOME': '/Users/estebangarrido10',
             if check and retcode:
 >               raise CalledProcessError(retcode, process.args,
                                          output=stdout, stderr=stderr)
-E               subprocess.CalledProcessError: Command '['/Users/estebangarrido10/black_tesis/.venv/bin/python', '-m', 'black', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_does_not0/source.py', '--cache-dir', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_dir_option_does_not0/cli-cache']' returned non-zero exit status 123.
+E               subprocess.CalledProcessError: Command '['/Users/estebangarrido10/black_tesis/.venv/bin/python', '-m', 'black', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_does_not0/source.py', '--cache-dir', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_dir_option_does_not0/cli-cache']' returned non-zero exit status 123.
 
 ../../../../.local/share/uv/python/cpython-3.12.15-macos-aarch64-none/lib/python3.12/subprocess.py:571: CalledProcessError
 ____ TestCaching.test_relative_cache_dir_from_config_is_relative_to_config _____
 
-self = <tests.test_black.TestCaching object at 0x104eed190>
-tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_relative_cache_dir_from_c0')
+self = <tests.test_black.TestCaching object at 0x102945610>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_relative_cache_dir_from_c0')
 
     def test_relative_cache_dir_from_config_is_relative_to_config(
         self, tmp_path: Path
@@ -708,7 +708,7 @@ E        +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:3083: AssertionError
 ______________________ TestCaching.test_cache_broken_file ______________________
 
-self = <tests.test_black.TestCaching object at 0x104eedeb0>
+self = <tests.test_black.TestCaching object at 0x10294d6a0>
 
     def test_cache_broken_file(self) -> None:
         mode = DEFAULT_MODE
@@ -723,7 +723,7 @@ self = <tests.test_black.TestCaching object at 0x104eedeb0>
 tests/test_black.py:3159: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpy_1_zh8d/test.py']
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzocflwpg/test.py']
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -742,9 +742,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpy_1_zh8d/test.py']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzocflwpg/test.py']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpy_1_zh8d/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpy_1_zh8d/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzocflwpg/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzocflwpg/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -752,7 +752,7 @@ E        +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:137: AssertionError
 ______________ TestCaching.test_cache_single_file_already_cached _______________
 
-self = <tests.test_black.TestCaching object at 0x104eec770>
+self = <tests.test_black.TestCaching object at 0x10294c3b0>
 
     def test_cache_single_file_already_cached(self) -> None:
         mode = DEFAULT_MODE
@@ -766,7 +766,7 @@ self = <tests.test_black.TestCaching object at 0x104eec770>
 tests/test_black.py:3177: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpwa06zebm/test.py']
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp099xgwd5/test.py']
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -785,9 +785,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpwa06zebm/test.py']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp099xgwd5/test.py']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpwa06zebm/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpwa06zebm/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp099xgwd5/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp099xgwd5/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -795,7 +795,7 @@ E        +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:137: AssertionError
 ____________________ TestCaching.test_cache_multiple_files _____________________
 
-self = <tests.test_black.TestCaching object at 0x104eef710>
+self = <tests.test_black.TestCaching object at 0x10294e000>
 
     @event_loop()
     def test_cache_multiple_files(self) -> None:
@@ -821,7 +821,7 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 tests/test_black.py:3197: AttributeError
 _ TestCaching.test_cache_written_when_writeback_diff_and_unmodified[no-color] __
 
-self = <tests.test_black.TestCaching object at 0x104ef86b0>, color = False
+self = <tests.test_black.TestCaching object at 0x10294e900>, color = False
 
     @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
     def test_cache_written_when_writeback_diff_and_unmodified(
@@ -839,7 +839,7 @@ self = <tests.test_black.TestCaching object at 0x104ef86b0>, color = False
 tests/test_black.py:3231: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzj94be0s/test.py', '--diff']
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpisw4v8tv/test.py', '--diff']
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -858,9 +858,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzj94be0s/test.py', '--diff']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpisw4v8tv/test.py', '--diff']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzj94be0s/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpzj94be0s/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpisw4v8tv/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpisw4v8tv/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -868,7 +868,7 @@ E        +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:137: AssertionError
 _ TestCaching.test_cache_written_when_writeback_diff_and_unmodified[with-color] _
 
-self = <tests.test_black.TestCaching object at 0x104ef8860>, color = True
+self = <tests.test_black.TestCaching object at 0x10294ea50>, color = True
 
     @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
     def test_cache_written_when_writeback_diff_and_unmodified(
@@ -886,7 +886,7 @@ self = <tests.test_black.TestCaching object at 0x104ef8860>, color = True
 tests/test_black.py:3231: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpu74zlhc3/test.py', '--diff', '--color']
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpfflrn0tl/test.py', '--diff', '--color']
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -905,9 +905,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpu74zlhc3/test.py', '--diff', '--color']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpfflrn0tl/test.py', '--diff', '--color']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpu74zlhc3/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpu74zlhc3/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpfflrn0tl/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpfflrn0tl/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -915,7 +915,7 @@ E        +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:137: AssertionError
 ___ TestCaching.test_cache_used_when_writeback_diff_already_cached[no-color] ___
 
-self = <tests.test_black.TestCaching object at 0x104eeca10>, color = False
+self = <tests.test_black.TestCaching object at 0x10294ee10>, color = False
 
     @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
     def test_cache_used_when_writeback_diff_already_cached(self, color: bool) -> None:
@@ -936,7 +936,7 @@ E            +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:3247: AssertionError
 __ TestCaching.test_cache_used_when_writeback_diff_already_cached[with-color] __
 
-self = <tests.test_black.TestCaching object at 0x104eef0e0>, color = True
+self = <tests.test_black.TestCaching object at 0x10294ef60>, color = True
 
     @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
     def test_cache_used_when_writeback_diff_already_cached(self, color: bool) -> None:
@@ -957,7 +957,7 @@ E            +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:3247: AssertionError
 _____ TestCaching.test_cache_multiple_files_when_writeback_diff[no-color] ______
 
-self = <tests.test_black.TestCaching object at 0x104eed6d0>, color = False
+self = <tests.test_black.TestCaching object at 0x102946bd0>, color = False
 
     @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
     @event_loop()
@@ -987,15 +987,15 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 
 tests/test_black.py:3273: AttributeError
 ----------------------------- Captured stdout call -----------------------------
---- /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpb6gv08tt/two.py	2026-10-30 15:24:51.148284+00:00
-+++ /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpb6gv08tt/two.py	2026-10-30 15:24:51.245851+00:00
+--- /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpks3ojtbc/two.py	2026-11-13 18:59:44.822144+00:00
++++ /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpks3ojtbc/two.py	2026-11-13 18:59:44.940744+00:00
 @@ -1 +1 @@
 -print('world')
 \ No newline at end of file
 +print("world")
 ____ TestCaching.test_cache_multiple_files_when_writeback_diff[with-color] _____
 
-self = <tests.test_black.TestCaching object at 0x104eedbb0>, color = True
+self = <tests.test_black.TestCaching object at 0x102944f20>, color = True
 
     @pytest.mark.parametrize("color", [False, True], ids=["no-color", "with-color"])
     @event_loop()
@@ -1025,15 +1025,15 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 
 tests/test_black.py:3273: AttributeError
 ----------------------------- Captured stdout call -----------------------------
-[1m--- /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpjvexhwiv/two.py	2026-10-30 15:24:51.286551+00:00[0m
-[1m+++ /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpjvexhwiv/two.py	2026-10-30 15:24:51.383518+00:00[0m
+[1m--- /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpg8m4gp1v/two.py	2026-11-13 18:59:44.988615+00:00[0m
+[1m+++ /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpg8m4gp1v/two.py	2026-11-13 18:59:45.100893+00:00[0m
 [36m@@ -1 +1 @@[0m
 [31m-print('world')[0m
 \ No newline at end of file
 [32m+print("world")[0m
 ______________ TestCaching.test_no_cache_when_line_ranges[format] ______________
 
-self = <tests.test_black.TestCaching object at 0x104eb7a70>, check = False
+self = <tests.test_black.TestCaching object at 0x10294e390>, check = False
 
     @pytest.mark.parametrize("check", [False, True], ids=["format", "check"])
     def test_no_cache_when_line_ranges(self, check: bool) -> None:
@@ -1050,7 +1050,7 @@ self = <tests.test_black.TestCaching object at 0x104eb7a70>, check = False
 tests/test_black.py:3314: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp8mcj4kw5/test.py', '--line-ranges=1-1']
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp7xqir_ij/test.py', '--line-ranges=1-1']
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -1069,9 +1069,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp8mcj4kw5/test.py', '--line-ranges=1-1']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp7xqir_ij/test.py', '--line-ranges=1-1']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp8mcj4kw5/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp8mcj4kw5/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp7xqir_ij/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmp7xqir_ij/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -1079,7 +1079,7 @@ E        +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:137: AssertionError
 ______________ TestCaching.test_no_cache_when_line_ranges[check] _______________
 
-self = <tests.test_black.TestCaching object at 0x104ece960>, check = True
+self = <tests.test_black.TestCaching object at 0x10294e240>, check = True
 
     @pytest.mark.parametrize("check", [False, True], ids=["format", "check"])
     def test_no_cache_when_line_ranges(self, check: bool) -> None:
@@ -1096,7 +1096,7 @@ self = <tests.test_black.TestCaching object at 0x104ece960>, check = True
 tests/test_black.py:3314: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpusntkkzo/test.py', '--line-ranges=1-1', '--check']
+args = ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpuilx6b6y/test.py', '--line-ranges=1-1', '--check']
 exit_code = 0, ignore_config = True
 
     def invokeBlack(
@@ -1115,9 +1115,9 @@ exit_code = 0, ignore_config = True
             f"exception: {result.exception}"
         )
 >       assert result.exit_code == exit_code, msg
-E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpusntkkzo/test.py', '--line-ranges=1-1', '--check']
+E       AssertionError: Failed with args: ['--verbose', '--config', '/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/tests/empty.toml', '/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpuilx6b6y/test.py', '--line-ranges=1-1', '--check']
 E         stdout: ''
-E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpusntkkzo/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpusntkkzo/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
+E         stderr: 'Identified `/` as project root containing a file system root.\nFound input source: "/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpuilx6b6y/test.py"\nTraceback (most recent call last):\n  File "/Users/estebangarrido10/black_tesis/rope_pruebas/_trabajo/04_rename_metodo/src/black/__init__.py", line 1027, in reformat_one\n    if not cache.is_changed(src):\n           ^^^^^^^^^^^^^^^^\nAttributeError: \'Cache\' object has no attribute \'is_changed\'. Did you mean: \'has_changed\'?\nerror: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/tmpuilx6b6y/test.py: \'Cache\' object has no attribute \'is_changed\'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n'
 E         exception: 123
 E       assert 123 == 0
 E        +  where 123 = <Result SystemExit(123)>.exit_code
@@ -1125,7 +1125,7 @@ E        +  where 123 = <Result SystemExit(123)>.exit_code
 tests/test_black.py:137: AssertionError
 ___________________ TestCaching.test_write_cache_read_cache ____________________
 
-self = <tests.test_black.TestCaching object at 0x104ef9b80>
+self = <tests.test_black.TestCaching object at 0x10294f380>
 
     def test_write_cache_read_cache(self) -> None:
         mode = DEFAULT_MODE
@@ -1142,7 +1142,7 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 tests/test_black.py:3379: AttributeError
 ____________ TestCaching.test_failed_formatting_does_not_get_cached ____________
 
-self = <tests.test_black.TestCaching object at 0x104efa7e0>
+self = <tests.test_black.TestCaching object at 0x1029507d0>
 
     @event_loop()
     def test_failed_formatting_does_not_get_cached(self) -> None:
@@ -1164,7 +1164,7 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 tests/test_black.py:3467: AttributeError
 _ TestCaching.test_interrupted_run_is_not_reported_as_success[format-process-pool] _
 
-self = <tests.test_black.TestCaching object at 0x104ef4d70>, output = ''
+self = <tests.test_black.TestCaching object at 0x102950ce0>, output = ''
 executor = 'ProcessPoolExecutor', workers = '2'
 
     @pytest.mark.parametrize(
@@ -1226,7 +1226,7 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 tests/test_black.py:3522: AttributeError
 _ TestCaching.test_interrupted_run_is_not_reported_as_success[format-thread-pool] _
 
-self = <tests.test_black.TestCaching object at 0x104eee480>, output = ''
+self = <tests.test_black.TestCaching object at 0x102950f20>, output = ''
 executor = 'ThreadPoolExecutor', workers = '1'
 
     @pytest.mark.parametrize(
@@ -1288,7 +1288,7 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 tests/test_black.py:3522: AttributeError
 _ TestCaching.test_interrupted_run_is_not_reported_as_success[check-process-pool] _
 
-self = <tests.test_black.TestCaching object at 0x104eecf50>, output = '--check'
+self = <tests.test_black.TestCaching object at 0x102950fe0>, output = '--check'
 executor = 'ProcessPoolExecutor', workers = '2'
 
     @pytest.mark.parametrize(
@@ -1350,7 +1350,7 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 tests/test_black.py:3522: AttributeError
 _ TestCaching.test_interrupted_run_is_not_reported_as_success[check-thread-pool] _
 
-self = <tests.test_black.TestCaching object at 0x104eecf80>, output = '--check'
+self = <tests.test_black.TestCaching object at 0x1029510a0>, output = '--check'
 executor = 'ThreadPoolExecutor', workers = '1'
 
     @pytest.mark.parametrize(
@@ -1412,7 +1412,7 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 tests/test_black.py:3522: AttributeError
 _ TestCaching.test_interrupted_run_is_not_reported_as_success[diff-process-pool] _
 
-self = <tests.test_black.TestCaching object at 0x104eeee70>, output = '--diff'
+self = <tests.test_black.TestCaching object at 0x102951160>, output = '--diff'
 executor = 'ProcessPoolExecutor', workers = '2'
 
     @pytest.mark.parametrize(
@@ -1474,7 +1474,7 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 tests/test_black.py:3522: AttributeError
 _ TestCaching.test_interrupted_run_is_not_reported_as_success[diff-thread-pool] _
 
-self = <tests.test_black.TestCaching object at 0x104eee1b0>, output = '--diff'
+self = <tests.test_black.TestCaching object at 0x102951220>, output = '--diff'
 executor = 'ThreadPoolExecutor', workers = '1'
 
     @pytest.mark.parametrize(
@@ -1536,7 +1536,7 @@ E           AttributeError: 'Cache' object has no attribute 'is_changed'. Did yo
 tests/test_black.py:3522: AttributeError
 ___________________ TestCaching.test_read_cache_line_lengths ___________________
 
-self = <tests.test_black.TestCaching object at 0x104efac60>
+self = <tests.test_black.TestCaching object at 0x10294ddf0>
 
     def test_read_cache_line_lengths(self) -> None:
         mode = DEFAULT_MODE
@@ -1588,8 +1588,8 @@ E        +  where "error: cannot format /Users/estebangarrido10/black_tesis/rope
 tests/test_ipynb.py:547: AssertionError
 ______________ test_cache_isnt_written_if_no_jupyter_deps_single _______________
 
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10708f350>
-tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_isnt_written_if_no_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x104c475c0>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_isnt_written_if_no_0')
 
     def test_cache_isnt_written_if_no_jupyter_deps_single(
         monkeypatch: MonkeyPatch, tmp_path: pathlib.Path
@@ -1610,14 +1610,14 @@ tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/p
             main, [str(tmp_path / "notebook.ipynb"), f"--config={EMPTY_CONFIG}"]
         )
 >       assert "reformatted" in result.output
-E       assert 'reformatted' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ten_if_no_0/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n"
-E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ten_if_no_0/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.output
+E       assert 'reformatted' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...ten_if_no_0/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n"
+E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...ten_if_no_0/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.output
 
 tests/test_ipynb.py:568: AssertionError
 ________________ test_cache_isnt_written_if_no_jupyter_deps_dir ________________
 
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1084b9820>
-tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_cache_isnt_written_if_no_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x104b450a0>
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_cache_isnt_written_if_no_1')
 
     def test_cache_isnt_written_if_no_jupyter_deps_dir(
         monkeypatch: MonkeyPatch, tmp_path: pathlib.Path
@@ -1638,13 +1638,13 @@ tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/p
         )
         result = runner.invoke(main, [str(tmp_path), f"--config={EMPTY_CONFIG}"])
 >       assert "reformatted" in result.output
-E       assert 'reformatted' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ten_if_no_1/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n"
-E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...ten_if_no_1/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.output
+E       assert 'reformatted' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...ten_if_no_1/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n"
+E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...ten_if_no_1/notebook.ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file failed to reformat.\n" = <Result SystemExit(123)>.output
 
 tests/test_ipynb.py:589: AssertionError
 _______________________________ test_ipynb_flag ________________________________
 
-tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/test_ipynb_flag0')
+tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/test_ipynb_flag0')
 
     def test_ipynb_flag(tmp_path: pathlib.Path) -> None:
         nb = get_case_path("jupyter", "notebook_trailing_newline.ipynb")
@@ -1661,8 +1661,8 @@ tmp_path = PosixPath('/private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/p
         )
         expected = "@@ -1,3 +1,3 @@\n %%time\n \n-print('foo')\n+print(\"foo\")\n"
 >       assert expected in result.output
-E       assert '@@ -1,3 +1,3 @@\n %%time\n \n-print(\'foo\')\n+print("foo")\n' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...s_definitely_not_ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
-E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-120/t...s_definitely_not_ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n" = <Result SystemExit(123)>.output
+E       assert '@@ -1,3 +1,3 @@\n %%time\n \n-print(\'foo\')\n+print("foo")\n' in "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...s_definitely_not_ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n"
+E        +  where "error: cannot format /private/var/folders/k_/fsm668d93fnc6932cv0ykpbh0000gn/T/pytest-of-estebangarrido10/pytest-173/t...s_definitely_not_ipynb: 'Cache' object has no attribute 'is_changed'\n\nOh no! 💥 💔 💥\n1 file would fail to reformat.\n" = <Result SystemExit(123)>.output
 
 tests/test_ipynb.py:606: AssertionError
 =========================== short test summary info ============================
@@ -1711,4 +1711,4 @@ FAILED tests/test_ipynb.py::test_ipynb_diff_with_no_change - assert '1 file w...
 FAILED tests/test_ipynb.py::test_cache_isnt_written_if_no_jupyter_deps_single
 FAILED tests/test_ipynb.py::test_cache_isnt_written_if_no_jupyter_deps_dir - ...
 FAILED tests/test_ipynb.py::test_ipynb_flag - assert '@@ -1,3 +1,3 @@\n %%tim...
-44 failed, 699 passed, 2 skipped, 31 subtests passed in 25.60s
+44 failed, 699 passed, 2 skipped, 31 subtests passed in 26.86s

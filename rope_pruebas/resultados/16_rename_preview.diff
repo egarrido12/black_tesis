@@ -1,5 +1,17 @@
-Renaming <wrap_comprehension_in> to <wrap_comprehension_in_clause> - today 10:30:04 :
+Renaming <wrap_comprehension_in> to <wrap_comprehension_in_clause> - today 14:05:08 :
 
+
+--- a/tests/test_black.py
++++ b/tests/test_black.py
+@@ -3558,7 +3558,7 @@
+                 # If you are looking to remove one of these features, just
+                 # replace it with any other feature.
+                 values = [
+-                    {Preview.wrap_comprehension_in},
++                    {Preview.wrap_comprehension_in_clause},
+                     {Preview.string_processing},
+                 ]
+             elif field.type is bool:
 
 --- a/src/black/mode.py
 +++ b/src/black/mode.py
@@ -24,16 +36,4 @@ Renaming <wrap_comprehension_in> to <wrap_comprehension_in_clause> - today 10:30
              normalize_invisible_parens(
                  node, parens_after={"in"}, mode=self.mode, features=self.features
              )
-
---- a/tests/test_black.py
-+++ b/tests/test_black.py
-@@ -3558,7 +3558,7 @@
-                 # If you are looking to remove one of these features, just
-                 # replace it with any other feature.
-                 values = [
--                    {Preview.wrap_comprehension_in},
-+                    {Preview.wrap_comprehension_in_clause},
-                     {Preview.string_processing},
-                 ]
-             elif field.type is bool:
 

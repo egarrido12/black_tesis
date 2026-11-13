@@ -6,8 +6,8 @@ Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según
 
 | Opciones de `Project(...)` | Carpetas de código detectadas | `import black` se resuelve en | Resultado |
 |---|---|---|---|
-| `(por defecto)` | `.` | el repositorio ORIGINAL (`/Users/estebangarrido10/black_tesis/src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/miscellaneous/invalid_header.py> line <1>: invalid syntax |
-| `source_folders=['src']` | `src`, `.` | la copia (`src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/miscellaneous/invalid_header.py> line <1>: invalid syntax |
+| `(por defecto)` | `.` | el repositorio ORIGINAL (`/Users/estebangarrido10/black_tesis/src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/cases/pep_750_nested_quotes.py> line <5>: invalid syntax |
+| `source_folders=['src']` | `src`, `.` | la copia (`src/black`) | `ModuleSyntaxError`: Syntax error in file <tests/data/cases/pep_750_nested_quotes.py> line <5>: invalid syntax |
 | `ignore_syntax_errors=True` | `.` | el repositorio ORIGINAL (`/Users/estebangarrido10/black_tesis/src/black`) | 1 ocurrencias en 1 archivos |
 | `ignore_syntax_errors=True, source_folders=['src']` | `src`, `.` | la copia (`src/black`) | 40 ocurrencias en 5 archivos |
 
@@ -897,13 +897,6 @@ Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según
 
 ### `lib2to3_parse` (40 ocurrencias)
 
-- `src/black/__init__.py:73`
-- `src/black/__init__.py:1476`
-- `src/black/debug.py:7`
-- `src/black/debug.py:54`
-- `tests/util.py:61`
-- `tests/util.py:70`
-- `src/black/parsing.py:77`
 - `tests/test_black.py:341`
 - `tests/test_black.py:350`
 - `tests/test_black.py:367`
@@ -937,14 +930,21 @@ Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según
 - `tests/test_black.py:1181`
 - `tests/test_black.py:1247`
 - `tests/test_black.py:2530`
+- `src/black/parsing.py:77`
+- `tests/util.py:61`
+- `tests/util.py:70`
+- `src/black/__init__.py:73`
+- `src/black/__init__.py:1476`
+- `src/black/debug.py:7`
+- `src/black/debug.py:54`
 
 ### `parse_line_ranges` (8 ocurrencias)
 
-- `src/black/__init__.py:80`
-- `src/black/__init__.py:754`
 - `tests/util.py:19`
 - `tests/util.py:294`
 - `src/black/ranges.py:22`
+- `src/black/__init__.py:80`
+- `src/black/__init__.py:754`
 - `tests/test_ranges.py:5`
 - `tests/test_ranges.py:19`
 - `tests/test_ranges.py:33`
@@ -963,12 +963,6 @@ Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según
 
 ### `dump_to_file` (19 ocurrencias)
 
-- `src/black/__init__.py:68`
-- `src/black/__init__.py:1420`
-- `src/black/__init__.py:1897`
-- `src/black/__init__.py:1907`
-- `src/black/__init__.py:1931`
-- `src/black/output.py:126`
 - `tests/test_black.py:227`
 - `tests/test_black.py:244`
 - `tests/test_black.py:390`
@@ -982,6 +976,12 @@ Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según
 - `tests/test_black.py:1827`
 - `tests/test_black.py:1829`
 - `tests/test_black.py:2372`
+- `src/black/__init__.py:68`
+- `src/black/__init__.py:1420`
+- `src/black/__init__.py:1897`
+- `src/black/__init__.py:1907`
+- `src/black/__init__.py:1931`
+- `src/black/output.py:126`
 
 ### `visit_suite` (1 ocurrencias)
 
@@ -989,9 +989,9 @@ Ocurrencias de `parsing.lib2to3_parse` encontradas por `find_occurrences` según
 
 ### `wrap_comprehension_in` (3 ocurrencias)
 
+- `tests/test_black.py:3561`
 - `src/black/mode.py:263`
 - `src/black/linegen.py:803`
-- `tests/test_black.py:3561`
 
 ## find_definition (rope.contrib.findit)
 

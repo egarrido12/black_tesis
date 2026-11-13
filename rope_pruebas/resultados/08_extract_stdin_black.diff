@@ -1,5 +1,5 @@
---- src/black/__init__.py	2026-10-30 15:26:46.910162+00:00
-+++ src/black/__init__.py	2026-10-30 15:34:31.002643+00:00
+--- src/black/__init__.py	2026-11-13 19:01:44.077632+00:00
++++ src/black/__init__.py	2026-11-13 19:08:23.820895+00:00
 @@ -1040,10 +1040,11 @@
          report.done(src, changed)
      except Exception as exc:

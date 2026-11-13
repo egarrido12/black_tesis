@@ -56,7 +56,7 @@ caffeinate -dimsu .venv/bin/python -W ignore rope_pruebas/ejecutar_pruebas_rope.
 .venv/bin/python rope_pruebas/clasificar_find_errors.py   # clasifica los 852 avisos de find_errors
 ```
 
-El paso 2 tarda unos **7,5 minutos**. Cada ejecución **borra y regenera** la carpeta `resultados/` (incluida `resultados/carbono/`).
+El paso 2 tarda unos **8 minutos**. Cada ejecución **borra y regenera** la carpeta `resultados/` (incluida `resultados/carbono/`).
 
 - **`caffeinate -dimsu`** evita que el Mac se suspenda a mitad de la corrida. La suspensión mata los procesos largos y deja las mediciones de energía incompletas.
 - **`-W ignore`** silencia cientos de `SyntaxWarning` que Python emite cuando Rope analiza los casos de prueba de `tests/data/` (contienen secuencias de escape inválidas a propósito).
@@ -94,8 +94,11 @@ rope_pruebas/
     ├── formateo_posterior.md          ← tabla de verificar_formateo.py
     └── carbono/
         ├── huella_carbono.md          ← tablas de energía y emisiones
-        ├── emisiones_maquina.csv      ← CSV estándar de CodeCarbon, modo máquina (una fila por medición)
-        └── emisiones_proceso.csv      ← CSV estándar de CodeCarbon, modo proceso
+        ├── emisiones_maquina.csv      ← CSV estándar de CodeCarbon, modo máquina (una fila por fase)
+        ├── emisiones_proceso.csv      ← CSV estándar de CodeCarbon, modo proceso
+        ├── serie_temporal_maquina.csv ← una fila por muestra, cada 0,25 s, DURANTE cada fase
+        ├── serie_temporal_proceso.csv
+        └── eventos.csv                ← momentos marcados dentro de cada operación de Rope
 ```
 
 ---
@@ -206,7 +209,7 @@ Dos de estas categorías anticipan fallos de las refactorizaciones: los **parám
 | **Total (17)** | **5 (29 %)** | **9 (53 %)** | **5 (29 %)** | **3 (18 %)** |
 
 - **Determinismo:** en los 17 casos, las 5 repeticiones produjeron **exactamente el mismo diff** (o el mismo error).
-- **Tiempo:** cada operación de Rope tardó entre 0,03 s y 2 s (media de 5 repeticiones). Las 17 suman 13,4 s.
+- **Tiempo:** cada operación de Rope tardó entre 0,05 s y 1,8 s (media de 5 repeticiones). Las 17 suman 15,3 s.
 
 ### 5.2 Rename
 
@@ -275,7 +278,7 @@ def _append_diff_lines(a_lines, b_lines, a_name, b_name, diff_lines):
 
 Todos los tests pasan salvo `test_piping`.
 
-**El problema del formato (06b, 07, 08 y 12).** `tests/test_black.py::BlackTestCase::test_piping` pasa el propio `src/black/__init__.py` por Black y exige que ya esté formateado. Black es el único proyecto de los tres que **se aplica su propio estilo como test**, y Rope nunca reformatea lo que genera. Para separar "rompe el comportamiento" de "rompe el estilo", `verificar_formateo.py` toma la copia que dejó Rope, ejecuta `black` sobre los archivos modificados y vuelve a correr la suite:
+**El problema del formato (06b, 07, 08 y 12).** `tests/test_black.py::BlackTestCase::test_piping` pasa el propio `src/black/__init__.py` por Black y exige que ya esté formateado. Black es el único proyecto de los tres que **se aplica su propio estilo como test**, y Rope nunca reformatea lo que genera. Para separar "rompe el comportamiento" de "rompe el estilo", `verificar_formateo.py` toma la copia que dejó Rope, ejecuta `black` sobre los archivos modificados y vuelve a correr la suite. Formatea con **la misma configuración que usa `test_piping`** (`--config tests/empty.toml`, estilo estable). Hay que indicarla porque Black se formatea a sí mismo con su estilo inestable (`unstable = true` en `pyproject.toml`): sin `--config`, `black` tomaría esa configuración y en algunas construcciones (por ejemplo `frozenset({...})`) dejaría un formato que `test_piping` no acepta. Con los cambios de Rope da lo mismo, pero con los de Claude no (ver `../llm_pruebas/README.md`):
 
 | # | Tests con la salida de Rope | Tests después de `black` | Qué cambió Black |
 |---|---|---|---|
@@ -330,7 +333,9 @@ Aquí el nombre de un símbolo Python es, a la vez, **parte de la interfaz públ
 
 ## 6. Huella de carbono (CodeCarbon)
 
-Detalle completo en [`resultados/carbono/huella_carbono.md`](resultados/carbono/huella_carbono.md). Los datos crudos están en los CSV de `resultados/carbono/` (formato estándar de CodeCarbon, una fila por medición) y en `resumen.json`.
+Detalle completo en [`resultados/carbono/huella_carbono.md`](resultados/carbono/huella_carbono.md). Los datos crudos están en `resultados/carbono/` y en `resumen.json`. La lógica de medición está en [`../huella_carbono/medicion.py`](../huella_carbono/medicion.py), compartida con el experimento de Claude ([`../llm_pruebas/`](../llm_pruebas/README.md)) para que las dos herramientas se midan exactamente igual.
+
+> **Corrida vigente: 2026-11-13.** Es la segunda versión de la medición: además del total de cada fase, ahora se registra lo que pasa **durante** la ejecución (sección 6.2). Los 17 veredictos fueron idénticos a los de la corrida del 2026-10-30.
 
 ### 6.1 Cómo se midió
 
@@ -339,11 +344,27 @@ Detalle completo en [`resultados/carbono/huella_carbono.md`](resultados/carbono/
   - **Máquina** (`tracking_mode="machine"`): toda la computadora, incluido el consumo de fondo del sistema y de otras aplicaciones abiertas (VS Code, navegador).
   - **Proceso** (`tracking_mode="process"`): solo el proceso de Python del experimento y sus hijos (pytest). Es **lo atribuible a Rope y a los tests**.
 - **Qué se mide en cada refactorización:** (a) **la operación de Rope** (abrir el proyecto, calcular y aplicar los cambios), 5 veces, cada una sobre una copia nueva y **sin incluir el tiempo de copiar** el repositorio; y (b) **la verificación con pytest** (una vez).
-- `measure_power_secs=1`: CodeCarbon toma una muestra de potencia por segundo.
+- **Muestreo cada 0,25 s** (`measure_power_secs=0.25`) en cada fase, y cada 1 s en el tracker del experimento completo.
 
 **Limitación importante: es una estimación, no una medición física.** El Apple M4 no expone sus sensores de energía sin permisos de administrador (`sudo powermetrics`), así que CodeCarbon usa el modo **`cpu_load`**: estima la potencia de la CPU a partir de su **TDP** (20 W para el M4 según la tabla de CodeCarbon) y del **porcentaje de carga**. En modo máquina usa `potencia = TDP × (0,1 + 0,9 × carga³)`, y en modo proceso, `potencia = TDP × carga del proceso`. La RAM se estima con un modelo fijo (3 W para 16 GB). Los números sirven para **comparar fases entre sí** y para dar un **orden de magnitud**, no como valores absolutos exactos.
 
-### 6.2 Resultados
+### 6.2 Medición durante la ejecución
+
+CodeCarbon normalmente entrega un solo número al terminar (`tracker.stop()`). Para ver lo que pasa **mientras** Rope trabaja, se usa la vía oficial de CodeCarbon para salidas en vivo: un *output handler* propio (subclase de `BaseOutput` con el método `live_out`) y `api_call_interval=1`, con lo que CodeCarbon entrega cada muestra apenas la toma. Eso genera tres archivos:
+
+| Archivo | Qué contiene |
+|---|---|
+| `serie_temporal_maquina.csv`, `serie_temporal_proceso.csv` | Una fila por muestra (cada 0,25 s): fase, segundos desde el inicio de la fase, hora, energía de la muestra, energía acumulada, **potencia media de la muestra** (W) y emisiones acumuladas. 2265 muestras en esta corrida |
+| `eventos.csv` | Momentos marcados dentro de cada operación de Rope: `proyecto_abierto`, `cambios_calculados`, `cambios_aplicados` o `error`. Sirven para ubicar en la serie temporal qué estaba haciendo Rope |
+| `emisiones_maquina.csv`, `emisiones_proceso.csv` | El CSV estándar de CodeCarbon, una fila por fase (el total al terminar) |
+
+Ejemplo (caso 02, una repetición, modo proceso): Rope abre el proyecto al instante, tarda **1,19 s en calcular** los cambios (recorre todo el proyecto buscando usos) y **0,25 s en aplicarlos**. Durante ese tiempo el proceso consume **~11 W**, un núcleo de CPU trabajando al máximo. En reposo, el mismo tracker marca ~3,6 W.
+
+Cada operación de Rope quedó cubierta por entre 5 muestras (las que Rope rechaza en 0,05 s) y 25 (el Rename de 02, ~1,8 s).
+
+**Costo de medir más seguido:** con 4 trackers muestreando a la vez (2 de la fase y 2 del experimento completo), las operaciones de Rope tardaron en promedio **0,9 s en vez de 0,8 s** (+14 %) respecto de la corrida con una muestra por segundo. Ese trabajo extra de medición queda incluido en el modo proceso.
+
+### 6.3 Resultados
 
 Unidades: **mWh** (milivatios-hora; 1 Wh = 1000 mWh) y **mg CO₂eq** (miligramos de CO₂ equivalente).
 
@@ -351,31 +372,30 @@ Unidades: **mWh** (milivatios-hora; 1 Wh = 1000 mWh) y **mg CO₂eq** (miligramo
 
 | Fase | Duración | Energía máquina | Emisiones máquina | Energía proceso | Emisiones proceso |
 |---|---|---|---|---|---|
-| Reposo (no hacer nada) | 30 s | 96,2 mWh | 25,0 mg | 26,6 mWh | 6,9 mg |
-| Línea base: una corrida de pytest | 24 s | 92,2 mWh | 23,9 mg | 72,1 mWh | 18,7 mg |
-| Análisis estático con Rope | 2,6 s | 10,9 mWh | 2,8 mg | 8,0 mWh | 2,1 mg |
-| **Experimento completo** | **7 min 18 s** | **1915 mWh** | **497 mg** | **1311 mWh** | **340 mg** |
+| Reposo (no hacer nada) | 30 s | 99,1 mWh | 25,7 mg | 29,8 mWh | 7,7 mg |
+| Línea base: una corrida de pytest | 27 s | 88,0 mWh | 22,9 mg | 81,3 mWh | 21,1 mg |
+| Análisis estático con Rope | 4,6 s | 17,6 mWh | 4,6 mg | 13,9 mWh | 3,6 mg |
+| **Experimento completo** | **7 min 42 s** | **1643 mWh** | **426 mg** | **1445 mWh** | **375 mg** |
 
 **Rope frente a la verificación con tests:**
 
 | Concepto | Tiempo | Energía proceso | Emisiones proceso |
 |---|---|---|---|
-| Aplicar las 17 refactorizaciones con Rope (una vez cada una) | 13,4 s | **40,4 mWh** | **10,5 mg** |
-| Una operación de Rope, en promedio | 0,8 s | 2,4 mWh | 0,6 mg |
-| Verificar con pytest las 14 refactorizaciones aplicadas | ~5,5 min | **955 mWh** | **248 mg** |
-| Una corrida de pytest, en promedio | 24 s | 68 mWh | 17,7 mg |
+| Aplicar las 17 refactorizaciones con Rope (una vez cada una) | 15,3 s | **48,1 mWh** | **12,5 mg** |
+| Una operación de Rope, en promedio | 0,9 s | 2,8 mWh | 0,73 mg |
+| Verificar con pytest las 14 refactorizaciones aplicadas | ~6 min | **1046 mWh** | **271 mg** |
+| Una corrida de pytest, en promedio | 25 s | 75 mWh | 19,4 mg |
 
-**Por operación de Rope** (media de 5 repeticiones, modo proceso): de **0,02 mWh** (06, 09, 10 y 10b, que Rope rechaza o resuelve en menos de 0,1 s) a **6,1 mWh** (14, Rename con `docs=True`, que además revisa strings y comentarios). Los Rename que recorren todo el proyecto (02, 03, 12, 13, 14) son los más costosos: entre 3,6 y 6,1 mWh.
+**Por operación de Rope** (media de 5 repeticiones, modo proceso): de **0,03 mWh** (06 y 09, que Rope rechaza en menos de 0,1 s) a **6,7 mWh** (03, Rename que también actualiza los tests). Los Extract Method son baratos (0,1–0,3 mWh) porque solo analizan un archivo. Los Rename, Inline y Move recorren todo el proyecto y cuestan entre 3,1 y 6,7 mWh.
 
-### 6.3 Interpretación
+### 6.4 Interpretación
 
-1. **Aplicar una refactorización con Rope es casi gratis en energía.** Una operación promedio emite unos **0,6 mg de CO₂eq** y tarda menos de un segundo. Todo lo que hizo Rope en el experimento (10,5 mg) equivale a lo que la máquina consume **en unos 13 s de reposo** (modo máquina).
-2. **Lo caro es verificar.** Correr la suite para comprobar cada refactorización consume **unas 24 veces más energía** que aplicarla (955 frente a 40 mWh). Como Rope falla en silencio en varios casos (04, 10b, 13, 15), esa verificación **no es opcional**: el costo real de refactorizar con Rope de forma segura está dominado por los tests.
-3. **El fondo del sistema pesa mucho.** En reposo, la máquina consume 3,6 veces más de lo que se atribuye al proceso (96 frente a 27 mWh en 30 s). En el experimento completo, un 32 % de la energía medida en modo máquina no corresponde al experimento.
-4. **El experimento completo emitió menos de medio gramo de CO₂eq** (0,34 g atribuibles, 0,50 g contando toda la máquina).
-5. **Precisión de las operaciones cortas.** Las operaciones de menos de 1 s tienen una desviación estándar alta (por ejemplo 2,2 ± 2,6 mWh en 04), por dos motivos: CodeCarbon muestrea la potencia una vez por segundo, y algunas repeticiones tardan más (0,34 s frente a 2,17 s en 04, probablemente por caché del sistema de archivos o recolección de basura). Por eso se repitió cada operación 5 veces y se informa la media. Las operaciones de ~0,05 s quedan casi en 0 en modo máquina porque terminan antes de la primera muestra de potencia.
-
-> **Para la comparación con el LLM (pendiente):** la energía de una consulta a un modelo de lenguaje en la nube **no se puede medir con CodeCarbon desde esta máquina**, porque se consume en los servidores del proveedor. CodeCarbon solo mediría la parte local (enviar la petición y esperar). Para comparar habrá que usar estimaciones publicadas por token o modelos locales (por ejemplo, con Ollama), que sí se pueden medir aquí.
+1. **Aplicar una refactorización con Rope es casi gratis en energía.** Una operación promedio emite unos **0,73 mg de CO₂eq** y tarda menos de un segundo. Todo lo que hizo Rope en el experimento (12,5 mg) equivale a lo que la máquina consume **en unos 15 s de reposo** (modo máquina).
+2. **Lo caro es verificar.** Correr la suite para comprobar cada refactorización consume **unas 26 veces más energía** que aplicarla (75 frente a 2,8 mWh por caso). Como Rope falla en silencio en varios casos (04, 10b, 13, 15), esa verificación **no es opcional**: el costo real de refactorizar con Rope de forma segura está dominado por los tests.
+3. **Durante la ejecución, Rope es intensivo pero breve:** usa un núcleo al máximo (~11 W en modo proceso) durante 1 a 2 s. Es el perfil opuesto al de Claude, donde la computadora espera casi en reposo durante minutos (ver [`../llm_pruebas/README.md`](../llm_pruebas/README.md), sección 6).
+4. **El experimento completo emitió 0,38 g de CO₂eq** atribuibles al proceso (0,43 g contando toda la máquina).
+5. **Precisión de las operaciones cortas.** Las operaciones de ~1 s tienen una desviación estándar alta (por ejemplo 4,1 ± 3,4 mWh en 04), porque algunas repeticiones tardan bastante más que otras (caché del sistema de archivos, recolección de basura). Por eso se repitió cada operación 5 veces y se informa la media. Con el muestreo cada 0,25 s, las operaciones de ~0,05 s ya no quedan en 0, pero siguen siendo la medición menos precisa.
+6. **Variación entre corridas:** la corrida del 2026-10-30 (muestreo cada 1 s) dio 2,4 mWh por operación y 68 mWh por pytest. La de hoy, 2,8 y 75 mWh. Las diferencias (~15 %) son del orden de la variabilidad entre repeticiones, así que conviene citar estos números como orden de magnitud.
 
 ---
 
@@ -389,7 +409,7 @@ Unidades: **mWh** (milivatios-hora; 1 Wh = 1000 mWh) y **mg CO₂eq** (miligramo
 6. **`docs=True` ayuda con los mocks por string solo a veces** (14): funciona si el string empieza por un nombre importado en ese archivo (`import black`), y no en el caso de Cookiecutter.
 7. **Rope no respeta el estilo del proyecto:** una línea en blanco en vez de dos, imports fusionados en líneas de 260 caracteres, comentarios borrados (12). Black es el único de los tres proyectos con un test que lo detecta (`test_piping`). **Después de Rope hay que pasar un formateador** (en este caso, el propio Black).
 8. **`find_errors` vuelve a tener 100 % de falsos positivos** (852/852), y la mitad (416) se debe a atributos creados dinámicamente con `setattr`.
-9. **Huella de carbono:** aplicar una refactorización con Rope cuesta unos 2,4 mWh (0,6 mg CO₂eq); verificarla con la suite cuesta unas 28 veces más (68 mWh, 17,7 mg). El experimento completo emitió 0,34 g de CO₂eq atribuibles.
+9. **Huella de carbono:** aplicar una refactorización con Rope cuesta unos 2,8 mWh (0,73 mg CO₂eq); verificarla con la suite cuesta unas 26 veces más (75 mWh, 19,4 mg). El experimento completo emitió 0,38 g de CO₂eq atribuibles.
 
 ### Comparación con PySnooper y Cookiecutter
 
@@ -405,7 +425,7 @@ Unidades: **mWh** (milivatios-hora; 1 Wh = 1000 mWh) y **mg CO₂eq** (miligramo
 | Falsos positivos de `find_errors` | 31/31 | 39/39 | 852/852 |
 | Obstáculo de configuración | — | archivos `.py` que son plantillas Jinja | src layout + archivos `.py` inválidos en `tests/data` |
 | `docs=True` arregla los mocks por string | — | No | **Sí** |
-| Huella de carbono medida | — | — | 0,6 mg CO₂eq por operación de Rope |
+| Huella de carbono medida | — | — | 0,73 mg CO₂eq por operación de Rope |
 
 ---
 

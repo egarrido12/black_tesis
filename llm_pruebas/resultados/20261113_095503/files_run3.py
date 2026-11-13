@@ -1,0 +1,513 @@
+import os
+import sys
+from collections.abc import Iterable, Iterator, Sequence
+from functools import lru_cache
+from pathlib import Path
+from re import Pattern
+from typing import TYPE_CHECKING, Any, TextIO, Union
+
+from mypy_extensions import mypyc_attr
+from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
+from packaging.version import InvalidVersion, Version
+from pathspec import GitIgnoreSpec
+from pathspec.patterns.gitignore import GitIgnorePatternError
+
+if sys.version_info >= (3, 11):
+    try:
+        import tomllib
+    except ImportError:
+        # Help users on older alphas
+        if not TYPE_CHECKING:
+            import tomli as tomllib
+else:
+    import tomli as tomllib
+
+from black.handle_ipynb_magics import jupyter_dependencies_are_installed
+from black.mode import TargetVersion
+from black.output import err
+from black.report import Report
+
+if TYPE_CHECKING:
+    import colorama
+
+
+@lru_cache
+def _load_toml(path: Path | str) -> dict[str, Any]:
+    with open(path, "rb") as f:
+        return tomllib.load(f)
+
+
+@lru_cache
+def _cached_resolve(path: Path) -> Path:
+    return path.resolve()
+
+
+def _resolve_search_paths(srcs: Sequence[str | Path]) -> tuple[str, ...]:
+    """Return `srcs` as absolute, resolved path strings.
+
+    The current working directory is used when `srcs` is empty.
+    """
+    if not srcs:
+        return (str(_cached_resolve(Path.cwd())),)
+    return tuple(str(_cached_resolve(Path(Path.cwd(), src))) for src in srcs)
+
+
+def find_project_root(
+    srcs: Sequence[str | Path], stdin_filename: str | None = None
+) -> tuple[Path | None, str | None]:
+    """Return a directory containing .git, .hg, or pyproject.toml.
+
+    pyproject.toml files are only considered if they contain a [tool.black]
+    section and are ignored otherwise.
+
+    That directory will be a common parent of all files and directories
+    passed in `srcs`.
+
+    If no directory in the tree contains a marker that would specify it's the
+    project root, the root of the file system is returned.
+
+    If the sources share no common parent at all (for example, they live on
+    different drives on Windows), there is no project root and
+    ``(None, None)`` is returned.
+
+    Returns a two-tuple with the first element as the project root path and
+    the second element as a string describing the method by which the
+    project root was discovered.
+    """
+    if stdin_filename is not None:
+        srcs = tuple(stdin_filename if s == "-" else s for s in srcs)
+
+    return _find_project_root_cached(_resolve_search_paths(srcs))
+
+
+def is_filesystem_root(path: Path) -> bool:
+    """Return whether ``path`` resolves to the root of its filesystem."""
+    try:
+        resolved = path.resolve()
+    except (OSError, RuntimeError):
+        return False
+    return resolved == resolved.parent
+
+
+def _find_common_base(srcs: tuple[str, ...]) -> Path | None:
+    """Return the deepest directory that is a parent of every path in `srcs`.
+
+    Returns None if the paths share no common parent.
+    """
+    path_srcs = [Path(src) for src in srcs]
+
+    # A list of lists of parents for each 'src'. 'src' is included as a
+    # "parent" of itself if it is a directory
+    src_parents = [
+        list(path.parents) + ([path] if path.is_dir() else []) for path in path_srcs
+    ]
+
+    common_parents = set.intersection(*(set(parents) for parents in src_parents))
+    if not common_parents:
+        return None
+    return max(common_parents, key=lambda path: path.parts)
+
+
+def _project_root_marker(directory: Path) -> str | None:
+    """Describe the project root marker found in `directory`, if any."""
+    if (directory / ".git").exists():
+        return ".git directory"
+
+    if (directory / ".hg").is_dir():
+        return ".hg directory"
+
+    if (directory / "pyproject.toml").is_file():
+        pyproject_toml = _load_toml(directory / "pyproject.toml")
+        if "black" in pyproject_toml.get("tool", {}):
+            return "pyproject.toml"
+
+    return None
+
+
+@lru_cache
+def _find_project_root_cached(srcs: tuple[str, ...]) -> tuple[Path | None, str | None]:
+    common_base = _find_common_base(srcs)
+    if common_base is None:
+        return None, None
+
+    candidates = (common_base, *common_base.parents)
+    for directory in candidates:
+        marker = _project_root_marker(directory)
+        if marker is not None:
+            return directory, marker
+
+    return candidates[-1], "file system root"
+
+
+def find_pyproject_toml(
+    path_search_start: tuple[str, ...], stdin_filename: str | None = None
+) -> str | None:
+    """Find the absolute filepath to a pyproject.toml if it exists"""
+    path_project_root, _ = find_project_root(path_search_start, stdin_filename)
+    if path_project_root is not None:
+        path_pyproject_toml = path_project_root / "pyproject.toml"
+        if path_pyproject_toml.is_file():
+            return str(path_pyproject_toml)
+
+    try:
+        path_user_pyproject_toml = find_user_pyproject_toml()
+        if path_user_pyproject_toml.is_file():
+            return str(path_user_pyproject_toml)
+        return None
+    except (PermissionError, RuntimeError) as e:
+        # We do not have access to the user-level config directory, so ignore it.
+        err(f"Ignoring user configuration directory due to {e!r}")
+        return None
+
+
+@mypyc_attr(patchable=True)
+def parse_pyproject_toml(path_config: str) -> dict[str, Any]:
+    """Parse a pyproject toml file, pulling out relevant parts for Black.
+
+    If parsing fails or the Black configuration is not a table, raises ValueError.
+    """
+    pyproject_toml = _load_toml(path_config)
+    config: dict[str, Any] = pyproject_toml.get("tool", {}).get("black", {})
+    if not isinstance(config, dict):
+        raise ValueError("Config key tool.black must be a table")
+    config = {k.replace("--", "").replace("-", "_"): v for k, v in config.items()}
+
+    if "target_version" not in config:
+        inferred_target_version = infer_target_version(pyproject_toml)
+        if inferred_target_version is not None:
+            config["target_version"] = [v.name.lower() for v in inferred_target_version]
+
+    return config
+
+
+def infer_target_version(
+    pyproject_toml: dict[str, Any],
+) -> list[TargetVersion] | None:
+    """Infer Black's target version from the project metadata in pyproject.toml.
+
+    Supports the PyPA standard format (PEP 621):
+    https://packaging.python.org/en/latest/specifications/declaring-project-metadata/#requires-python
+
+    If the target version cannot be inferred, returns None.
+    """
+    project_metadata = pyproject_toml.get("project", {})
+    requires_python = project_metadata.get("requires-python", None)
+    if requires_python is not None:
+        try:
+            return parse_req_python_version(requires_python)
+        except InvalidVersion:
+            pass
+        try:
+            return parse_req_python_specifier(requires_python)
+        except (InvalidSpecifier, InvalidVersion):
+            pass
+
+    return None
+
+
+def parse_req_python_version(requires_python: str) -> list[TargetVersion] | None:
+    """Parse a version string (i.e. ``"3.7"``) to a list of TargetVersion.
+
+    If parsing fails, will raise a packaging.version.InvalidVersion error.
+    If the parsed version cannot be mapped to a valid TargetVersion, returns None.
+    """
+    version = Version(requires_python)
+    if version.release[0] != 3:
+        return None
+    try:
+        return [TargetVersion(version.release[1])]
+    except (IndexError, ValueError):
+        return None
+
+
+def parse_req_python_specifier(requires_python: str) -> list[TargetVersion] | None:
+    """Parse a specifier string (i.e. ``">=3.7,<3.10"``) to a list of TargetVersion.
+
+    If parsing fails, will raise a packaging.specifiers.InvalidSpecifier error.
+    If the parsed specifier cannot be mapped to a valid TargetVersion, returns None.
+    """
+    specifier_set = strip_specifier_set(SpecifierSet(requires_python))
+    if not specifier_set:
+        return None
+
+    target_version_map = {f"3.{v.value}": v for v in TargetVersion}
+    compatible_versions: list[str] = list(specifier_set.filter(target_version_map))
+    if compatible_versions:
+        return [target_version_map[v] for v in compatible_versions]
+    return None
+
+
+def _strip_specifier(specifier: Specifier) -> Specifier:
+    """Strip the version of a single specifier down to major.minor if applicable."""
+    if "*" in str(specifier):
+        return specifier
+
+    if specifier.operator in ["~=", "==", ">=", "==="]:
+        version = Version(specifier.version)
+        return Specifier(f"{specifier.operator}{version.major}.{version.minor}")
+
+    if specifier.operator == ">":
+        version = Version(specifier.version)
+        if len(version.release) > 2:
+            return Specifier(f">={version.major}.{version.minor}")
+
+    return specifier
+
+
+def strip_specifier_set(specifier_set: SpecifierSet) -> SpecifierSet:
+    """Strip minor versions for some specifiers in the specifier set.
+
+    For background on version specifiers, see PEP 440:
+    https://peps.python.org/pep-0440/#version-specifiers
+    """
+    specifiers = [_strip_specifier(s) for s in specifier_set]
+    return SpecifierSet(",".join(str(s) for s in specifiers))
+
+
+@lru_cache
+def find_user_pyproject_toml() -> Path:
+    r"""Return the path to the top-level user configuration for black.
+
+    This looks for ~\.black on Windows and ~/.config/black on Linux and other
+    Unix systems.
+
+    May raise:
+    - RuntimeError: if the current user has no homedir
+    - PermissionError: if the current process cannot access the user's homedir
+    """
+    if sys.platform == "win32":
+        # Windows
+        user_config_path = Path.home() / ".black"
+    else:
+        config_root = os.environ.get("XDG_CONFIG_HOME", "~/.config")
+        user_config_path = Path(config_root).expanduser() / "black"
+    return _cached_resolve(user_config_path)
+
+
+def _read_gitignore_lines(gitignore: Path) -> list[str]:
+    """Return the lines of `gitignore`, or an empty list if it isn't a file."""
+    if not gitignore.is_file():
+        return []
+    # Like git, skip a UTF-8 byte order mark. Otherwise it becomes part of the
+    # first pattern, which then never matches.
+    with gitignore.open(encoding="utf-8-sig") as gf:
+        return gf.readlines()
+
+
+@lru_cache
+def get_gitignore(root: Path | None) -> GitIgnoreSpec:
+    """Return a GitIgnoreSpec matching gitignore content if present."""
+    if root is None:
+        return GitIgnoreSpec.from_lines([])
+    gitignore = root / ".gitignore"
+    lines = _read_gitignore_lines(gitignore)
+    try:
+        return GitIgnoreSpec.from_lines(lines)
+    except GitIgnorePatternError as e:
+        err(f"Could not parse {gitignore}: {e}")
+        raise
+
+
+def resolves_outside_root_or_cannot_stat(
+    path: Path,
+    root: Path,
+    report: Report | None = None,
+) -> bool:
+    """
+    Returns whether the path is a symbolic link that points outside the
+    root directory. Also returns True if we failed to resolve the path.
+    """
+    try:
+        resolved_path = _cached_resolve(path)
+    except OSError as e:
+        if report:
+            report.path_ignored(path, f"cannot be read because {e}")
+        return True
+    try:
+        resolved_path.relative_to(root)
+    except ValueError:
+        if report:
+            report.path_ignored(path, f"is a symbolic link that points outside {root}")
+        return True
+    return False
+
+
+def _collapse_parent_dirs(relative_path: Path) -> Path:
+    """Collapse ".." in a root-relative path without resolving symlinks.
+
+    This way exclusion regexes see "generated/x.py" rather than
+    "src/../generated/x.py". If a symlink makes the collapsed path leave the
+    root, the path is kept as given.
+    """
+    collapsed = Path(os.path.normpath(relative_path))
+    if collapsed.parts[:1] == ("..",):
+        return relative_path
+    return collapsed
+
+
+def best_effort_relative_path(path: Path, root: Path) -> Path:
+    # Precondition: resolves_outside_root_or_cannot_stat(path, root) is False
+    try:
+        return _collapse_parent_dirs(path.absolute().relative_to(root))
+    except ValueError:
+        pass
+    root_parent = next((p for p in path.parents if _cached_resolve(p) == root), None)
+    if root_parent is not None:
+        return _collapse_parent_dirs(path.relative_to(root_parent))
+    # something adversarial, fallback to path guaranteed by precondition
+    return _cached_resolve(path).relative_to(root)
+
+
+def _path_is_ignored(
+    root_relative_path: str,
+    root: Path,
+    gitignore_dict: dict[Path, GitIgnoreSpec],
+) -> bool:
+    path = root / root_relative_path
+    # Note that this logic is sensitive to the ordering of gitignore_dict. Callers must
+    # ensure that gitignore_dict is ordered from least specific to most specific.
+    for gitignore_path, pattern in gitignore_dict.items():
+        try:
+            relative_path = path.relative_to(gitignore_path).as_posix()
+            if path.is_dir():
+                relative_path = relative_path + "/"
+        except ValueError:
+            break
+        if pattern.match_file(relative_path):
+            return True
+    return False
+
+
+def path_is_excluded(
+    normalized_path: str,
+    pattern: Pattern[str] | None,
+) -> bool:
+    if not pattern:
+        return False
+    match = pattern.search(normalized_path)
+    return bool(match and match.group(0))
+
+
+def _matching_exclusion_option(
+    root_relative_path: str,
+    exclude: Pattern[str],
+    extend_exclude: Pattern[str] | None,
+    force_exclude: Pattern[str] | None,
+) -> str | None:
+    """Return the name of the first option whose regex excludes the path, if any."""
+    options: list[tuple[str, Pattern[str] | None]] = [
+        ("--exclude", exclude),
+        ("--extend-exclude", extend_exclude),
+        ("--force-exclude", force_exclude),
+    ]
+    for option_name, pattern in options:
+        if path_is_excluded(root_relative_path, pattern):
+            return option_name
+    return None
+
+
+def _extend_gitignore_dict(
+    gitignore_dict: dict[Path, GitIgnoreSpec] | None, root: Path, directory: Path
+) -> dict[Path, GitIgnoreSpec] | None:
+    """Return `gitignore_dict` extended with the .gitignore of `directory`.
+
+    If gitignore_dict is None, gitignore usage is disabled, while a Falsey
+    gitignore is when the directory doesn't have a .gitignore file.
+    """
+    if gitignore_dict is None:
+        return None
+    return {**gitignore_dict, root / directory: get_gitignore(directory)}
+
+
+def gen_python_files(
+    paths: Iterable[Path],
+    root: Path,
+    include: Pattern[str],
+    exclude: Pattern[str],
+    extend_exclude: Pattern[str] | None,
+    force_exclude: Pattern[str] | None,
+    report: Report,
+    gitignore_dict: dict[Path, GitIgnoreSpec] | None,
+    *,
+    verbose: bool,
+    quiet: bool,
+) -> Iterator[Path]:
+    """Generate all files under `path` whose paths are not excluded by the
+    `exclude_regex`, `extend_exclude`, or `force_exclude` regexes,
+    but are included by the `include` regex.
+
+    Symbolic links pointing outside of the `root` directory are ignored.
+
+    `report` is where output about exclusions goes.
+    """
+
+    assert root.is_absolute(), f"INTERNAL ERROR: `root` must be absolute but is {root}"
+    for child in paths:
+        assert child.is_absolute()
+        root_relative_path = child.relative_to(root).as_posix()
+
+        # First ignore files matching .gitignore, if passed
+        if gitignore_dict and _path_is_ignored(
+            root_relative_path, root, gitignore_dict
+        ):
+            report.path_ignored(child, "matches a .gitignore file content")
+            continue
+
+        # Then ignore with `--exclude` `--extend-exclude` and `--force-exclude` options.
+        root_relative_path = "/" + root_relative_path
+        if child.is_dir():
+            root_relative_path += "/"
+
+        excluding_option = _matching_exclusion_option(
+            root_relative_path, exclude, extend_exclude, force_exclude
+        )
+        if excluding_option is not None:
+            report.path_ignored(
+                child, f"matches the {excluding_option} regular expression"
+            )
+            continue
+
+        if resolves_outside_root_or_cannot_stat(child, root, report):
+            continue
+
+        if child.is_dir():
+            yield from gen_python_files(
+                child.iterdir(),
+                root,
+                include,
+                exclude,
+                extend_exclude,
+                force_exclude,
+                report,
+                _extend_gitignore_dict(gitignore_dict, root, child),
+                verbose=verbose,
+                quiet=quiet,
+            )
+
+        elif child.is_file():
+            if child.suffix == ".ipynb" and not jupyter_dependencies_are_installed(
+                warn=verbose or not quiet
+            ):
+                continue
+            if include.search(root_relative_path):
+                yield child
+
+
+def wrap_stream_for_windows(
+    f: TextIO,
+) -> Union[TextIO, "colorama.AnsiToWin32"]:
+    """
+    Wrap stream with colorama's wrap_stream so colors are shown on Windows.
+
+    If `colorama` is unavailable, the original stream is returned unmodified.
+    Otherwise, the `wrap_stream()` function determines whether the stream needs
+    to be wrapped for a Windows environment and will accordingly either return
+    an `AnsiToWin32` wrapper or the original stream.
+    """
+    try:
+        from colorama.initialise import wrap_stream
+    except ImportError:
+        return f
+    else:
+        # Set `strip=False` to avoid needing to modify test_express_diff_with_color.
+        return wrap_stream(f, convert=None, strip=False, autoreset=False, wrap=True)

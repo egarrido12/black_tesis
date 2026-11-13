@@ -1,0 +1,287 @@
+--- a/src/black/files.py
++++ b/src/black/files.py
+@@ -42,6 +42,16 @@
+     return path.resolve()
+ 
+ 
++def _resolve_search_paths(srcs: Sequence[str | Path]) -> tuple[str, ...]:
++    """Return `srcs` as absolute, resolved path strings.
++
++    The current working directory is used when `srcs` is empty.
++    """
++    if not srcs:
++        return (str(_cached_resolve(Path.cwd())),)
++    return tuple(str(_cached_resolve(Path(Path.cwd(), src))) for src in srcs)
++
++
+ def find_project_root(
+     srcs: Sequence[str | Path], stdin_filename: str | None = None
+ ) -> tuple[Path | None, str | None]:
+@@ -67,14 +77,7 @@
+     if stdin_filename is not None:
+         srcs = tuple(stdin_filename if s == "-" else s for s in srcs)
+ 
+-    if not srcs:
+-        resolved_srcs: tuple[str, ...] = (str(_cached_resolve(Path.cwd())),)
+-    else:
+-        resolved_srcs = tuple(
+-            str(_cached_resolve(Path(Path.cwd(), src))) for src in srcs
+-        )
+-
+-    return _find_project_root_cached(resolved_srcs)
++    return _find_project_root_cached(_resolve_search_paths(srcs))
+ 
+ 
+ def is_filesystem_root(path: Path) -> bool:
+@@ -86,8 +89,11 @@
+     return resolved == resolved.parent
+ 
+ 
+-@lru_cache
+-def _find_project_root_cached(srcs: tuple[str, ...]) -> tuple[Path | None, str | None]:
++def _find_common_base(srcs: tuple[str, ...]) -> Path | None:
++    """Return the deepest directory that is a parent of every path in `srcs`.
++
++    Returns None if the paths share no common parent.
++    """
+     path_srcs = [Path(src) for src in srcs]
+ 
+     # A list of lists of parents for each 'src'. 'src' is included as a
+@@ -98,22 +104,39 @@
+ 
+     common_parents = set.intersection(*(set(parents) for parents in src_parents))
+     if not common_parents:
++        return None
++    return max(common_parents, key=lambda path: path.parts)
++
++
++def _project_root_marker(directory: Path) -> str | None:
++    """Describe the project root marker found in `directory`, if any."""
++    if (directory / ".git").exists():
++        return ".git directory"
++
++    if (directory / ".hg").is_dir():
++        return ".hg directory"
++
++    if (directory / "pyproject.toml").is_file():
++        pyproject_toml = _load_toml(directory / "pyproject.toml")
++        if "black" in pyproject_toml.get("tool", {}):
++            return "pyproject.toml"
++
++    return None
++
++
++@lru_cache
++def _find_project_root_cached(srcs: tuple[str, ...]) -> tuple[Path | None, str | None]:
++    common_base = _find_common_base(srcs)
++    if common_base is None:
+         return None, None
+-    common_base = max(common_parents, key=lambda path: path.parts)
+-
+-    for directory in (common_base, *common_base.parents):
+-        if (directory / ".git").exists():
+-            return directory, ".git directory"
+-
+-        if (directory / ".hg").is_dir():
+-            return directory, ".hg directory"
+-
+-        if (directory / "pyproject.toml").is_file():
+-            pyproject_toml = _load_toml(directory / "pyproject.toml")
+-            if "black" in pyproject_toml.get("tool", {}):
+-                return directory, "pyproject.toml"
+-
+-    return directory, "file system root"
++
++    candidates = (common_base, *common_base.parents)
++    for directory in candidates:
++        marker = _project_root_marker(directory)
++        if marker is not None:
++            return directory, marker
++
++    return candidates[-1], "file system root"
+ 
+ 
+ def find_pyproject_toml(
+@@ -128,11 +151,9 @@
+ 
+     try:
+         path_user_pyproject_toml = find_user_pyproject_toml()
+-        return (
+-            str(path_user_pyproject_toml)
+-            if path_user_pyproject_toml.is_file()
+-            else None
+-        )
++        if path_user_pyproject_toml.is_file():
++            return str(path_user_pyproject_toml)
++        return None
+     except (PermissionError, RuntimeError) as e:
+         # We do not have access to the user-level config directory, so ignore it.
+         err(f"Ignoring user configuration directory due to {e!r}")
+@@ -216,28 +237,30 @@
+     return None
+ 
+ 
++def _strip_specifier(specifier: Specifier) -> Specifier:
++    """Strip the version of a single specifier down to major.minor if applicable."""
++    if "*" in str(specifier):
++        return specifier
++
++    if specifier.operator in ["~=", "==", ">=", "==="]:
++        version = Version(specifier.version)
++        return Specifier(f"{specifier.operator}{version.major}.{version.minor}")
++
++    if specifier.operator == ">":
++        version = Version(specifier.version)
++        if len(version.release) > 2:
++            return Specifier(f">={version.major}.{version.minor}")
++
++    return specifier
++
++
+ def strip_specifier_set(specifier_set: SpecifierSet) -> SpecifierSet:
+     """Strip minor versions for some specifiers in the specifier set.
+ 
+     For background on version specifiers, see PEP 440:
+     https://peps.python.org/pep-0440/#version-specifiers
+     """
+-    specifiers = []
+-    for s in specifier_set:
+-        if "*" in str(s):
+-            specifiers.append(s)
+-        elif s.operator in ["~=", "==", ">=", "==="]:
+-            version = Version(s.version)
+-            stripped = Specifier(f"{s.operator}{version.major}.{version.minor}")
+-            specifiers.append(stripped)
+-        elif s.operator == ">":
+-            version = Version(s.version)
+-            if len(version.release) > 2:
+-                s = Specifier(f">={version.major}.{version.minor}")
+-            specifiers.append(s)
+-        else:
+-            specifiers.append(s)
+-
++    specifiers = [_strip_specifier(s) for s in specifier_set]
+     return SpecifierSet(",".join(str(s) for s in specifiers))
+ 
+ 
+@@ -261,18 +284,23 @@
+     return _cached_resolve(user_config_path)
+ 
+ 
++def _read_gitignore_lines(gitignore: Path) -> list[str]:
++    """Return the lines of `gitignore`, or an empty list if it isn't a file."""
++    if not gitignore.is_file():
++        return []
++    # Like git, skip a UTF-8 byte order mark. Otherwise it becomes part of the
++    # first pattern, which then never matches.
++    with gitignore.open(encoding="utf-8-sig") as gf:
++        return gf.readlines()
++
++
+ @lru_cache
+ def get_gitignore(root: Path | None) -> GitIgnoreSpec:
+     """Return a GitIgnoreSpec matching gitignore content if present."""
+     if root is None:
+         return GitIgnoreSpec.from_lines([])
+     gitignore = root / ".gitignore"
+-    lines: list[str] = []
+-    if gitignore.is_file():
+-        # Like git, skip a UTF-8 byte order mark. Otherwise it becomes part of the
+-        # first pattern, which then never matches.
+-        with gitignore.open(encoding="utf-8-sig") as gf:
+-            lines = gf.readlines()
++    lines = _read_gitignore_lines(gitignore)
+     try:
+         return GitIgnoreSpec.from_lines(lines)
+     except GitIgnorePatternError as e:
+@@ -354,8 +382,41 @@
+     normalized_path: str,
+     pattern: Pattern[str] | None,
+ ) -> bool:
+-    match = pattern.search(normalized_path) if pattern else None
++    if not pattern:
++        return False
++    match = pattern.search(normalized_path)
+     return bool(match and match.group(0))
++
++
++def _matching_exclusion_option(
++    root_relative_path: str,
++    exclude: Pattern[str],
++    extend_exclude: Pattern[str] | None,
++    force_exclude: Pattern[str] | None,
++) -> str | None:
++    """Return the name of the first option whose regex excludes the path, if any."""
++    options: list[tuple[str, Pattern[str] | None]] = [
++        ("--exclude", exclude),
++        ("--extend-exclude", extend_exclude),
++        ("--force-exclude", force_exclude),
++    ]
++    for option_name, pattern in options:
++        if path_is_excluded(root_relative_path, pattern):
++            return option_name
++    return None
++
++
++def _extend_gitignore_dict(
++    gitignore_dict: dict[Path, GitIgnoreSpec] | None, root: Path, directory: Path
++) -> dict[Path, GitIgnoreSpec] | None:
++    """Return `gitignore_dict` extended with the .gitignore of `directory`.
++
++    If gitignore_dict is None, gitignore usage is disabled, while a Falsey
++    gitignore is when the directory doesn't have a .gitignore file.
++    """
++    if gitignore_dict is None:
++        return None
++    return {**gitignore_dict, root / directory: get_gitignore(directory)}
+ 
+ 
+ def gen_python_files(
+@@ -397,33 +458,19 @@
+         if child.is_dir():
+             root_relative_path += "/"
+ 
+-        if path_is_excluded(root_relative_path, exclude):
+-            report.path_ignored(child, "matches the --exclude regular expression")
+-            continue
+-
+-        if path_is_excluded(root_relative_path, extend_exclude):
++        excluding_option = _matching_exclusion_option(
++            root_relative_path, exclude, extend_exclude, force_exclude
++        )
++        if excluding_option is not None:
+             report.path_ignored(
+-                child, "matches the --extend-exclude regular expression"
++                child, f"matches the {excluding_option} regular expression"
+             )
+             continue
+ 
+-        if path_is_excluded(root_relative_path, force_exclude):
+-            report.path_ignored(child, "matches the --force-exclude regular expression")
+-            continue
+-
+         if resolves_outside_root_or_cannot_stat(child, root, report):
+             continue
+ 
+         if child.is_dir():
+-            # If gitignore is None, gitignore usage is disabled, while a Falsey
+-            # gitignore is when the directory doesn't have a .gitignore file.
+-            if gitignore_dict is not None:
+-                new_gitignore_dict = {
+-                    **gitignore_dict,
+-                    root / child: get_gitignore(child),
+-                }
+-            else:
+-                new_gitignore_dict = None
+             yield from gen_python_files(
+                 child.iterdir(),
+                 root,
+@@ -432,7 +479,7 @@
+                 extend_exclude,
+                 force_exclude,
+                 report,
+-                new_gitignore_dict,
++                _extend_gitignore_dict(gitignore_dict, root, child),
+                 verbose=verbose,
+                 quiet=quiet,
+             )

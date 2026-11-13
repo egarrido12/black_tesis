@@ -1,4 +1,4 @@
-# Rope en Black: resumen para presentar
+# Rope y Claude en Black: resumen para presentar
 
 Tercer proyecto del experimento "refactorización con Rope frente a un LLM", después de PySnooper y Cookiecutter. Detalle completo y evidencia en [`README.md`](README.md) y en [`resultados/`](resultados/).
 
@@ -10,7 +10,8 @@ Tercer proyecto del experimento "refactorización con Rope frente a un LLM", des
 - **Herramienta:** Rope 1.15.0, a través de su API de Python, desde un script ([`ejecutar_pruebas_rope.py`](ejecutar_pruebas_rope.py)).
 - **Método:** cada refactorización se aplica sobre una **copia limpia** del proyecto y se corre la suite completa. Si pasan los mismos 743 tests, **se preservó el comportamiento**.
 - **17 refactorizaciones:** 11 iguales a las de PySnooper y Cookiecutter (02–12), 2 de control (06b, 10b) y 4 propias de Black (13–16).
-- **Huella de carbono:** cada operación se midió con **CodeCarbon**, 5 repeticiones por caso.
+- **Huella de carbono:** cada operación se midió con **CodeCarbon**, 5 repeticiones por caso, durante la ejecución (muestras cada 0,25 s) y al final.
+- **Claude:** los mismos 9 módulos que tocó Rope se refactorizaron con **Claude Sonnet 5.5** y un prompt general, 3 veces cada uno (sección 5).
 
 ---
 
@@ -83,22 +84,53 @@ getattr(self, f"visit_{name}")                 # 15: el nombre se arma al ejecut
 
 ---
 
-## 5. Huella de carbono (CodeCarbon)
+## 5. Rope frente a Claude en Black
 
-Factor de la red eléctrica de Colombia: 259,5 gCO₂eq/kWh. Apple M4. Es una estimación por carga de CPU (sin sensores físicos).
+Mismo proyecto, mismos tests y mismos módulos. Claude Sonnet 5.5 recibió un prompt general ("mejora la legibilidad sin cambiar el comportamiento") y decidió él mismo qué hacer. 9 módulos × 3 corridas = 27 llamadas, US$ 10 en total. Detalle en [`../llm_pruebas/README.md`](../llm_pruebas/README.md).
 
-| | Tiempo | Energía | CO₂eq |
-|---|---|---|---|
-| **Una refactorización con Rope** (promedio) | 0,8 s | 2,4 mWh | **0,6 mg** |
-| **Una verificación con pytest** (promedio) | 24 s | 68 mWh | **17,7 mg** |
-| Las 17 refactorizaciones con Rope | 13,4 s | 40 mWh | 10,5 mg |
-| Experimento completo | 7 min 18 s | 1311 mWh | **0,34 g** |
+| | Rope | Claude Sonnet 5.5 |
+|---|---|---|
+| Preservan comportamiento (tests tal cual) | 5/17 (29 %) | **24/27 (89 %)** |
+| Preservan comportamiento (ignorando formato) | 9/17 (53 %) | **27/27 (100 %)** |
+| Cambian el comportamiento sin avisar | 5 | **0** |
+| Determinista | Sí | No (3 diffs distintos por módulo) |
+| Tamaño del cambio | unas decenas de líneas | ~1300 líneas en `__init__` |
+| Costo | 0 | ~US$ 0,34 por llamada |
 
-**Mensaje:** aplicar la refactorización es casi gratis. **Verificarla cuesta ~28 veces más**, y como Rope falla en silencio, esa verificación no se puede omitir.
+**Caso a caso, donde Rope falló:**
+
+| Caso | Rope | Claude en el mismo lugar |
+|---|---|---|
+| 09: bloque con `continue` | ⛔ se niega | ✅ lo extrajo: el helper devuelve `None` y el bucle hace `continue` |
+| 10: bucle con f-strings | ⛔ se cae (bug) | ✅ lo partió en 2–3 helpers |
+| 07 / 08: extraer caché y stdin | 🎨 solo formato | ✅ los mismos bloques, con tipos y docstring |
+| 04, 13, 15, 16: Renames con referencias dinámicas | ❌ rompen en silencio | No los tocó: el prompt prohíbe renombrar lo público |
+
+**Mensaje:** Claude hace bien lo que Rope no sabe transformar, y evita lo peligroso, pero no es repetible y cambia mucho más código.
 
 ---
 
-## 6. Comparación con los otros dos proyectos
+## 6. Huella de carbono, medida durante la ejecución
+
+CodeCarbon con muestras cada 0,25 s **mientras** corre cada operación, no solo al final (vía oficial: un *output handler* con `live_out`). Factor de la red de Colombia: 259,5 gCO₂eq/kWh. Apple M4, estimación por carga de CPU.
+
+| | Rope (por operación) | Claude (por llamada, solo lo local) |
+|---|---|---|
+| Duración | 0,9 s | 130 s |
+| **Potencia del proceso durante la ejecución** | **~11 W** (un núcleo al máximo) | **~3,6 W** (igual que en reposo) |
+| Energía local | 2,8 mWh | 131 mWh |
+| CO₂eq local | **0,73 mg** | **34 mg** |
+| Verificar con pytest | 75 mWh, 19,4 mg | 75 mWh, 19,4 mg |
+
+**Mensajes:**
+
+1. **Rope es intensivo pero brevísimo:** el costo real está en verificar con los tests (~26 veces más que la refactorización).
+2. **Mientras espera a Claude, la computadora está en reposo.** La energía local solo depende de cuánto tarda la respuesta. **El costo real del LLM está en los servidores de Anthropic y CodeCarbon no puede medirlo desde aquí.** Para la tesis se guardaron los tokens de cada llamada (628 854 de salida, 5,85 millones de entrada) para estimarlo con una fuente publicada.
+3. Aun así, solo lo local de una llamada a Claude es ~47 veces una operación de Rope.
+
+---
+
+## 7. Comparación con los otros dos proyectos (Rope)
 
 | | PySnooper | Cookiecutter | Black |
 |---|---|---|---|

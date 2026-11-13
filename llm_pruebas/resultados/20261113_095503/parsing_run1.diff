@@ -1,0 +1,308 @@
+--- a/src/black/parsing.py
++++ b/src/black/parsing.py
+@@ -15,6 +15,8 @@
+ from blib2to3.pgen2.parse import ParseError
+ from blib2to3.pgen2.tokenize import TokenError
+ from blib2to3.pytree import Leaf, Node
++
++_INDENT = "    "
+ 
+ 
+ class InvalidInput(ValueError):
+@@ -74,6 +76,45 @@
+     return grammars
+ 
+ 
++def _target_version_suffix(target_versions: Collection[TargetVersion]) -> str:
++    """Describe the newest target version for use in error messages."""
++    if not target_versions:
++        return ""
++    max_tv = max(target_versions, key=lambda tv: tv.value)
++    return f" for target version {max_tv.pretty()}"
++
++
++def _get_faulty_line(src_txt: str, lineno: int) -> str:
++    lines = src_txt.splitlines()
++    try:
++        return lines[lineno - 1]
++    except IndexError:
++        return "<line number missing in source>"
++
++
++def _make_invalid_input(
++    src_txt: str,
++    lineno: int,
++    column: int,
++    target_version_suffix: str,
++    error_description: str,
++) -> InvalidInput:
++    """Build the `InvalidInput` for a failed parse attempt.
++
++    `error_description` is the last line of the details, e.g. "ParseError: ...".
++    """
++    faulty_line = _get_faulty_line(src_txt, lineno)
++    context = f"cannot parse{target_version_suffix}"
++    details = "\n".join((
++        "",
++        f"    {faulty_line}",
++        f"    {' ' * (column - 1)}^",
++        error_description,
++    ))
++    error_msg = f"{context}: {lineno}:{column}{details}"
++    return InvalidInput(error_msg, lineno, column, context, details)
++
++
+ def lib2to3_parse(
+     src_txt: str, target_versions: Collection[TargetVersion] = ()
+ ) -> Node:
+@@ -82,11 +123,7 @@
+         src_txt += "\n"
+ 
+     grammars = get_grammars(set(target_versions))
+-    if target_versions:
+-        max_tv = max(target_versions, key=lambda tv: tv.value)
+-        tv_str = f" for target version {max_tv.pretty()}"
+-    else:
+-        tv_str = ""
++    tv_str = _target_version_suffix(target_versions)
+ 
+     errors = {}
+     for grammar in grammars:
+@@ -97,40 +134,14 @@
+ 
+         except ParseError as pe:
+             lineno, column = pe.context[1]
+-            lines = src_txt.splitlines()
+-            try:
+-                faulty_line = lines[lineno - 1]
+-            except IndexError:
+-                faulty_line = "<line number missing in source>"
+-            context = f"cannot parse{tv_str}"
+-            details = "\n".join((
+-                "",
+-                f"    {faulty_line}",
+-                f"    {' ' * (column - 1)}^",
+-                f"ParseError: {pe.msg}",
+-            ))
+-            error_msg = f"{context}: {lineno}:{column}{details}"
+-            errors[grammar.version] = InvalidInput(
+-                error_msg, lineno, column, context, details
++            errors[grammar.version] = _make_invalid_input(
++                src_txt, lineno, column, tv_str, f"ParseError: {pe.msg}"
+             )
+ 
+         except TokenError as te:
+             lineno, column = te.args[1]
+-            lines = src_txt.splitlines()
+-            try:
+-                faulty_line = lines[lineno - 1]
+-            except IndexError:
+-                faulty_line = "<line number missing in source>"
+-            context = f"cannot parse{tv_str}"
+-            details = "\n".join((
+-                "",
+-                f"    {faulty_line}",
+-                f"    {' ' * (column - 1)}^",
+-                f"TokenError: {te.args[0]}",
+-            ))
+-            error_msg = f"{context}: {lineno}:{column}{details}"
+-            errors[grammar.version] = InvalidInput(
+-                error_msg, lineno, column, context, details
++            errors[grammar.version] = _make_invalid_input(
++                src_txt, lineno, column, tv_str, f"TokenError: {te.args[0]}"
+             )
+ 
+     else:
+@@ -169,24 +180,42 @@
+         )
+ 
+ 
+-def parse_ast(src: str) -> ast.AST:
+-    # TODO: support Python 4+ ;)
+-    versions = [(3, minor) for minor in range(3, sys.version_info[1] + 1)]
+-
++def _parse_with_first_working_version(
++    src: str, versions: list[tuple[int, int]], *, type_comments: bool
++) -> tuple[ast.AST | None, str]:
++    """Try `versions` in order and return `(tree, first_error_message)`.
++
++    `tree` is None when every version fails to parse.
++    """
+     first_error = ""
+-    for version in sorted(versions, reverse=True):
++    for version in versions:
+         try:
+-            return _parse_single_version(src, version, type_comments=True)
++            return _parse_single_version(src, version, type_comments=type_comments), (
++                first_error
++            )
+         except SyntaxError as e:
+             if not first_error:
+                 first_error = str(e)
++    return None, first_error
++
++
++def parse_ast(src: str) -> ast.AST:
++    # TODO: support Python 4+ ;)
++    # Newest version first.
++    versions = sorted(
++        ((3, minor) for minor in range(3, sys.version_info[1] + 1)), reverse=True
++    )
++
++    tree, first_error = _parse_with_first_working_version(
++        src, versions, type_comments=True
++    )
++    if tree is not None:
++        return tree
+ 
+     # Try to parse without type comments
+-    for version in sorted(versions, reverse=True):
+-        try:
+-            return _parse_single_version(src, version, type_comments=False)
+-        except SyntaxError:
+-            pass
++    tree, _ = _parse_with_first_working_version(src, versions, type_comments=False)
++    if tree is not None:
++        return tree
+ 
+     raise SyntaxError(first_error)
+ 
+@@ -214,7 +243,8 @@
+     parent_stack.pop()
+ 
+ 
+-def _stringify_ast(node: ast.AST, parent_stack: list[ast.AST]) -> Iterator[str]:
++def _drop_unicode_kind(node: ast.AST) -> None:
++    """Remove the `u` string prefix marker, which doesn't affect equivalence."""
+     if (
+         isinstance(node, ast.Constant)
+         and isinstance(node.value, str)
+@@ -225,66 +255,80 @@
+         # over the kind
+         node.kind = None
+ 
+-    yield f"{'    ' * len(parent_stack)}{node.__class__.__name__}("
+-
+-    for field in sorted(node._fields):
+-        # TypeIgnore has only one field 'lineno' which breaks this comparison
+-        if isinstance(node, ast.TypeIgnore):
+-            break
+-
++
++def _fields_to_compare(node: ast.AST) -> list[str]:
++    # TypeIgnore has only one field 'lineno' which breaks this comparison
++    if isinstance(node, ast.TypeIgnore):
++        return []
++    return sorted(node._fields)
++
++
++def _stringify_list_field(
++    node: ast.AST, field: str, items: list[object], parent_stack: list[ast.AST]
++) -> Iterator[str]:
++    for item in items:
++        # Ignore nested tuples within del statements, because we may insert
++        # parentheses and they change the AST.
++        if field == "targets" and isinstance(node, ast.Delete) and isinstance(
++            item, ast.Tuple
++        ):
++            for elt in _unwrap_tuples(item):
++                yield from _stringify_ast_with_new_parent(elt, parent_stack, node)
++
++        elif isinstance(item, ast.AST):
++            yield from _stringify_ast_with_new_parent(item, parent_stack, node)
++
++
++def _normalize_field_value(
++    node: ast.AST, field: str, value: object, parent_stack: list[ast.AST]
++) -> object:
++    if (
++        isinstance(node, ast.Constant)
++        and field == "value"
++        and isinstance(value, str)
++        and len(parent_stack) >= 2
++        # Any standalone string, ideally this would
++        # exactly match black.nodes.is_docstring
++        and isinstance(parent_stack[-1], ast.Expr)
++    ):
++        # Constant strings may be indented across newlines, if they are
++        # docstrings; fold spaces after newlines when comparing. Similarly,
++        # trailing and leading space may be removed.
++        return _normalize("\n", value)
++    if field == "type_comment" and isinstance(value, str):
++        # Trailing whitespace in type comments is removed.
++        return value.rstrip()
++    return value
++
++
++def _stringify_ast(node: ast.AST, parent_stack: list[ast.AST]) -> Iterator[str]:
++    _drop_unicode_kind(node)
++
++    indent = _INDENT * len(parent_stack)
++    field_indent = indent + _INDENT
++    node_name = node.__class__.__name__
++
++    yield f"{indent}{node_name}("
++
++    for field in _fields_to_compare(node):
+         try:
+             value: object = getattr(node, field)
+         except AttributeError:
+             continue
+ 
+-        yield f"{'    ' * (len(parent_stack) + 1)}{field}="
++        yield f"{field_indent}{field}="
+ 
+         if isinstance(value, list):
+-            for item in value:
+-                # Ignore nested tuples within del statements, because we may insert
+-                # parentheses and they change the AST.
+-                if (
+-                    field == "targets"
+-                    and isinstance(node, ast.Delete)
+-                    and isinstance(item, ast.Tuple)
+-                ):
+-                    for elt in _unwrap_tuples(item):
+-                        yield from _stringify_ast_with_new_parent(
+-                            elt, parent_stack, node
+-                        )
+-
+-                elif isinstance(item, ast.AST):
+-                    yield from _stringify_ast_with_new_parent(item, parent_stack, node)
++            yield from _stringify_list_field(node, field, value, parent_stack)
+ 
+         elif isinstance(value, ast.AST):
+             yield from _stringify_ast_with_new_parent(value, parent_stack, node)
+ 
+         else:
+-            normalized: object
+-            if (
+-                isinstance(node, ast.Constant)
+-                and field == "value"
+-                and isinstance(value, str)
+-                and len(parent_stack) >= 2
+-                # Any standalone string, ideally this would
+-                # exactly match black.nodes.is_docstring
+-                and isinstance(parent_stack[-1], ast.Expr)
+-            ):
+-                # Constant strings may be indented across newlines, if they are
+-                # docstrings; fold spaces after newlines when comparing. Similarly,
+-                # trailing and leading space may be removed.
+-                normalized = _normalize("\n", value)
+-            elif field == "type_comment" and isinstance(value, str):
+-                # Trailing whitespace in type comments is removed.
+-                normalized = value.rstrip()
+-            else:
+-                normalized = value
+-            yield (
+-                f"{'    ' * (len(parent_stack) + 1)}{normalized!r},  #"
+-                f" {value.__class__.__name__}"
+-            )
+-
+-    yield f"{'    ' * len(parent_stack)})  # /{node.__class__.__name__}"
++            normalized = _normalize_field_value(node, field, value, parent_stack)
++            yield f"{field_indent}{normalized!r},  # {value.__class__.__name__}"
++
++    yield f"{indent})  # /{node_name}"
+ 
+ 
+ def _unwrap_tuples(node: ast.Tuple) -> Iterator[ast.AST]:

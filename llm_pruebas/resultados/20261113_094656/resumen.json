@@ -1,0 +1,190 @@
+{
+  "python": "3.12.15",
+  "anthropic": "2.8.0",
+  "modelo": "claude-sonnet-5-5",
+  "effort": "high",
+  "prompt": "Eres un ingeniero de software experto en Python. Tu tarea es refactorizar un módulo del proyecto Black para mejorar su legibilidad y mantenibilidad, sin cambiar su comportamiento.\n\nReglas:\n- El comportamiento observable debe ser idéntico al original.\n- No cambies los nombres ni las firmas de las funciones, clases y métodos públicos (los que no empiezan con \"_\"), porque otros módulos y los tests los usan.\n- No agregues funcionalidades nuevas ni dependencias.\n- Modifica solo el archivo indicado; el resto del paquete se muestra como contexto de solo lectura.\n- Mantén la compatibilidad con las versiones de Python que el proyecto ya soporta.\n\nFormato de respuesta:\n1. El archivo completo refactorizado, en un único bloque ```python.\n2. Después, una sección \"## Refactorizaciones aplicadas\" con una lista: tipo de refactorización (según el catálogo de Fowler, por ejemplo Extract Method, Rename Variable, Inline Function...), elementos afectados y motivo.\n",
+  "linea_base": {
+    "returncode": 0,
+    "passed": 743,
+    "failed": 0,
+    "skipped": 2,
+    "errors": 0,
+    "fallidos": []
+  },
+  "determinismo": {
+    "cache": {
+      "corridas": 1,
+      "diffs_distintos": 1
+    }
+  },
+  "costo_total_usd": 0.9153,
+  "carbono": {
+    "info": {
+      "codecarbon": "3.3.2",
+      "pais": "Colombia",
+      "pais_iso": "COL",
+      "intensidad_gCO2eq_kWh": 259.511,
+      "cpu": "Apple M4",
+      "cpu_count": 10,
+      "ram_GB": 16.0,
+      "os": "macOS-15.6.1-arm64-arm-64bit",
+      "metodo_cpu": "cpu_load (TDP x carga de CPU; sin sensores de energía)",
+      "intervalo_muestreo_s": 0.25
+    },
+    "referencias": {
+      "Reposo (30 s sin hacer nada)": {
+        "maquina": {
+          "duracion_s": 30.023,
+          "energia_Wh": 0.09604498026736133,
+          "energia_cpu_Wh": 0.07103499894145615,
+          "energia_ram_Wh": 0.025009981325905137,
+          "emisiones_mgCO2eq": 24.924728874163222,
+          "potencia_cpu_W": 8.519549517855262,
+          "potencia_ram_W": 3.0,
+          "agua_L": 0.0,
+          "muestras": 119,
+          "potencia_max_W": 12.088721337593109
+        },
+        "proceso": {
+          "duracion_s": 30.023,
+          "energia_Wh": 0.028884795314605572,
+          "energia_cpu_Wh": 0.005637757355718259,
+          "energia_ram_Wh": 0.023247037958887332,
+          "emisiones_mgCO2eq": 7.495922116888605,
+          "potencia_cpu_W": 0.7571151000541121,
+          "potencia_ram_W": 3.0,
+          "agua_L": 0.0,
+          "muestras": 119,
+          "potencia_max_W": 6.619872955466148
+        }
+      },
+      "Línea base: pytest original": {
+        "maquina": {
+          "duracion_s": 26.543,
+          "energia_Wh": 0.09662017788244229,
+          "energia_cpu_Wh": 0.0745080158667989,
+          "energia_ram_Wh": 0.02211216201564337,
+          "emisiones_mgCO2eq": 25.073998982450483,
+          "potencia_cpu_W": 10.087286063037258,
+          "potencia_ram_W": 3.0,
+          "agua_L": 0.0,
+          "muestras": 106,
+          "potencia_max_W": 22.389763978931818
+        },
+        "proceso": {
+          "duracion_s": 26.558,
+          "energia_Wh": 0.08086678808983226,
+          "energia_cpu_Wh": 0.05988474145465099,
+          "energia_ram_Wh": 0.020982046635181176,
+          "emisiones_mgCO2eq": 20.98582104398047,
+          "potencia_cpu_W": 8.29370618774824,
+          "potencia_ram_W": 3.0,
+          "agua_L": 0.0,
+          "muestras": 106,
+          "potencia_max_W": 12.149679672105224
+        }
+      }
+    },
+    "totales": {
+      "llm_mWh": 37.30255012007258,
+      "llm_mg": 9.680422084210155,
+      "py_mWh": 88.97969329659753,
+      "py_mg": 23.091209187093323,
+      "llm_s": 38.569,
+      "llm_maquina_mWh": 125.27005018340162,
+      "llm_maquina_mg": 32.50895599314476
+    }
+  },
+  "corridas": [
+    {
+      "id": "cache_run1",
+      "modulo": "cache",
+      "corrida": 1,
+      "carbono": {
+        "llm": {
+          "maquina": {
+            "duracion_s": 38.543,
+            "energia_Wh": 0.12527005018340162,
+            "energia_cpu_Wh": 0.09315974760319166,
+            "energia_ram_Wh": 0.03211030258021008,
+            "emisiones_mgCO2eq": 32.50895599314476,
+            "potencia_cpu_W": 8.70022711541678,
+            "potencia_ram_W": 3.0,
+            "agua_L": 0.0,
+            "muestras": 153,
+            "potencia_max_W": 18.42057027224712
+          },
+          "proceso": {
+            "duracion_s": 38.569,
+            "energia_Wh": 0.03730255012007258,
+            "energia_cpu_Wh": 0.007260855747248121,
+            "energia_ram_Wh": 0.030041694372824466,
+            "emisiones_mgCO2eq": 9.680422084210155,
+            "potencia_cpu_W": 0.7532170357188173,
+            "potencia_ram_W": 3.0,
+            "agua_L": 0.0,
+            "muestras": 153,
+            "potencia_max_W": 6.570572485798846
+          }
+        },
+        "pytest": {
+          "maquina": {
+            "duracion_s": 29.536,
+            "energia_Wh": 0.10872121556882713,
+            "energia_cpu_Wh": 0.0841309306367231,
+            "energia_ram_Wh": 0.02459028493210402,
+            "emisiones_mgCO2eq": 28.214351373481886,
+            "potencia_cpu_W": 10.246574841504277,
+            "potencia_ram_W": 3.0,
+            "agua_L": 0.0,
+            "muestras": 117,
+            "potencia_max_W": 49.381704869437435
+          },
+          "proceso": {
+            "duracion_s": 29.536,
+            "energia_Wh": 0.08897969329659754,
+            "energia_cpu_Wh": 0.06581150752771578,
+            "energia_ram_Wh": 0.023168185768881817,
+            "emisiones_mgCO2eq": 23.091209187093323,
+            "potencia_cpu_W": 8.25630677444208,
+            "potencia_ram_W": 3.0,
+            "agua_L": 0.0,
+            "muestras": 117,
+            "potencia_max_W": 12.34049923290645
+          }
+        }
+      },
+      "modelo_respuesta": "claude-sonnet-5-5",
+      "stop_reason": "end_turn",
+      "message_id": "msg_011Ch17NgTRB4dJYBvYnExZc",
+      "tiempo_llm_s": 38.5,
+      "tiempos_stream_s": {
+        "primer_evento": 8.85,
+        "inicio_pensamiento": 8.86,
+        "inicio_text": 21.23
+      },
+      "tokens": {
+        "input": 25,
+        "output": 4881,
+        "cache_write": 216616,
+        "cache_read": 0
+      },
+      "costo_usd": 0.9153,
+      "intentos": 1,
+      "lineas_agregadas": 61,
+      "lineas_eliminadas": 43,
+      "sin_cambios": false,
+      "cambios_api_publica": [],
+      "tests": {
+        "returncode": 0,
+        "passed": 743,
+        "failed": 0,
+        "skipped": 2,
+        "errors": 0,
+        "fallidos": []
+      },
+      "veredicto": "COMPORTAMIENTO PRESERVADO"
+    }
+  ]
+}

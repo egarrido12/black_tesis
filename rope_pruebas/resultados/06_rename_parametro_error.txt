@@ -1,8 +1,8 @@
 Traceback (most recent call last):
-  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 553, in ejecutar_rope
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 491, in ejecutar_rope
     cambios = funcion(proyecto)
               ^^^^^^^^^^^^^^^^^
-  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 413, in ref_rename_parametro
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 350, in ref_rename_parametro
     return Rename(p, r, offset_de(r, marcador, len('    *,\n    '))).get_changes('skip_safety_checks')
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/rename.py", line 37, in __init__

@@ -1,0 +1,127 @@
+--- a/src/black/output.py
++++ b/src/black/output.py
+@@ -7,28 +7,51 @@
+ import os
+ import re
+ import tempfile
+-from typing import Any
++from typing import Any, Final
+ 
+ from click import echo, style
+ from mypy_extensions import mypyc_attr
+ 
++_ANSI_RESET: Final = "\033[0m"
++_ANSI_BOLD: Final = "\033[1m"
++_ANSI_CYAN: Final = "\033[36m"
++_ANSI_GREEN: Final = "\033[32m"
++_ANSI_RED: Final = "\033[31m"
+ 
+-@mypyc_attr(patchable=True)
+-def _out(message: str | None = None, nl: bool = True, **styles: Any) -> None:
++# Order matters: "+++" and "---" (file headers) must be checked before "+" and "-".
++_DIFF_LINE_COLORS: Final = (
++    (("+++", "---"), _ANSI_BOLD),
++    (("@@",), _ANSI_CYAN),
++    (("+",), _ANSI_GREEN),
++    (("-",), _ANSI_RED),
++)
++
++
++def _echo_styled(
++    message: str | None,
++    nl: bool,
++    default_styles: dict[str, Any],
++    styles: dict[str, Any],
++) -> None:
++    """Style `message` (when there is one) and write it to stderr.
++
++    Entries of `default_styles` apply unless `styles` already sets them.
++    """
+     if message is not None:
+-        if "bold" not in styles:
+-            styles["bold"] = True
++        for name, value in default_styles.items():
++            styles.setdefault(name, value)
+         message = style_output(message, **styles)
+     echo(message, nl=nl, err=True)
+ 
+ 
+ @mypyc_attr(patchable=True)
++def _out(message: str | None = None, nl: bool = True, **styles: Any) -> None:
++    _echo_styled(message, nl, {"bold": True}, styles)
++
++
++@mypyc_attr(patchable=True)
+ def _err(message: str | None = None, nl: bool = True, **styles: Any) -> None:
+-    if message is not None:
+-        if "fg" not in styles:
+-            styles["fg"] = "red"
+-        message = style_output(message, **styles)
+-    echo(message, nl=nl, err=True)
++    _echo_styled(message, nl, {"fg": "red"}, styles)
+ 
+ 
+ @mypyc_attr(patchable=True)
+@@ -40,21 +63,26 @@
+     _err(message, nl=nl, **styles)
+ 
+ 
++def _cell_source(notebook: dict[str, Any], cell_number: int) -> str:
++    """Return the source of cell `cell_number` of `notebook`, newline-terminated."""
++    return "".join(notebook["cells"][cell_number]["source"]) + "\n"
++
++
+ def ipynb_diff(a: str, b: str, a_name: str, b_name: str) -> str:
+     """Return a unified diff string between each cell in notebooks `a` and `b`."""
+     a_nb = json.loads(a)
+     b_nb = json.loads(b)
+-    diff_lines = [
++    cell_diffs = [
+         diff(
+-            "".join(a_nb["cells"][cell_number]["source"]) + "\n",
+-            "".join(b_nb["cells"][cell_number]["source"]) + "\n",
++            _cell_source(a_nb, cell_number),
++            _cell_source(b_nb, cell_number),
+             f"{a_name}:cell_{cell_number}",
+             f"{b_name}:cell_{cell_number}",
+         )
+         for cell_number, cell in enumerate(a_nb["cells"])
+         if cell["cell_type"] == "code"
+     ]
+-    return "".join(diff_lines)
++    return "".join(cell_diffs)
+ 
+ 
+ _line_pattern = re.compile(r"(.*?(?:\r\n|\n|\r|$))")
+@@ -94,22 +122,19 @@
+     return "".join(diff_lines)
+ 
+ 
++def _colorize_diff_line(line: str) -> str:
++    """Wrap a single diff line in the ANSI color matching its kind, if any."""
++    for prefixes, color in _DIFF_LINE_COLORS:
++        if line.startswith(prefixes):
++            return color + line + _ANSI_RESET
++    return line
++
++
+ def color_diff(contents: str) -> str:
+     """Inject the ANSI color codes to the diff."""
+     if not _color_enabled():
+         return contents
+-    lines = contents.split("\n")
+-    for i, line in enumerate(lines):
+-        if line.startswith("+++") or line.startswith("---"):
+-            line = "\033[1m" + line + "\033[0m"  # bold, reset
+-        elif line.startswith("@@"):
+-            line = "\033[36m" + line + "\033[0m"  # cyan, reset
+-        elif line.startswith("+"):
+-            line = "\033[32m" + line + "\033[0m"  # green, reset
+-        elif line.startswith("-"):
+-            line = "\033[31m" + line + "\033[0m"  # red, reset
+-        lines[i] = line
+-    return "\n".join(lines)
++    return "\n".join(_colorize_diff_line(line) for line in contents.split("\n"))
+ 
+ 
+ def style_output(message: str, **styles: Any) -> str:

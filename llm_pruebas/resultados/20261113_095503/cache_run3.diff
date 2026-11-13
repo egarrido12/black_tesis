@@ -1,0 +1,122 @@
+--- a/src/black/cache.py
++++ b/src/black/cache.py
+@@ -28,6 +28,19 @@
+     hash: str
+ 
+ 
++# The cache is pickled as plain tuples because that is faster than NamedTuples.
++_RawFileData = dict[str, tuple[float, int, str]]
++
++# Errors that mean "the cache file is unusable"; the next write will replace it.
++_CACHE_READ_ERRORS = (
++    pickle.UnpicklingError,
++    EOFError,
++    ValueError,
++    IndexError,
++    PermissionError,
++)
++
++
+ def get_cache_dir(cache_dir: Path | None = None) -> Path:
+     """Get the cache directory used by black.
+ 
+@@ -42,8 +55,7 @@
+     default_cache_dir = user_cache_dir("black")
+     if cache_dir is None:
+         cache_dir = Path(os.environ.get("BLACK_CACHE_DIR", default_cache_dir))
+-    cache_dir = cache_dir / __version__
+-    return cache_dir
++    return cache_dir / __version__
+ 
+ 
+ CACHE_DIR = get_cache_dir()
+@@ -76,20 +88,20 @@
+         if not exists:
+             return cls(mode, cache_file)
+ 
++        return cls(mode, cache_file, cls._load_file_data(cache_file))
++
++    @staticmethod
++    def _load_file_data(cache_file: Path) -> dict[str, FileData]:
++        """Load the file data stored in `cache_file`.
++
++        Return an empty mapping if the contents are malformed.
++        """
+         with cache_file.open("rb") as fobj:
+             try:
+-                data: dict[str, tuple[float, int, str]] = pickle.load(fobj)
+-                file_data = {k: FileData(*v) for k, v in data.items()}
+-            except (
+-                pickle.UnpicklingError,
+-                EOFError,
+-                ValueError,
+-                IndexError,
+-                PermissionError,
+-            ):
+-                return cls(mode, cache_file)
+-
+-        return cls(mode, cache_file, file_data)
++                data: _RawFileData = pickle.load(fobj)
++                return {k: FileData(*v) for k, v in data.items()}
++            except _CACHE_READ_ERRORS:
++                return {}
+ 
+     @staticmethod
+     def hash_digest(path: Path) -> str:
+@@ -103,8 +115,8 @@
+         """Return file data for path."""
+ 
+         stat = path.stat()
+-        hash = Cache.hash_digest(path)
+-        return FileData(stat.st_mtime, stat.st_size, hash)
++        digest = Cache.hash_digest(path)
++        return FileData(stat.st_mtime, stat.st_size, digest)
+ 
+     def is_changed(self, source: Path) -> bool:
+         """Check if source has changed compared to cached version."""
+@@ -117,9 +129,7 @@
+         if st.st_size != old.st_size:
+             return True
+         if st.st_mtime != old.st_mtime:
+-            new_hash = Cache.hash_digest(res_src)
+-            if new_hash != old.hash:
+-                return True
++            return Cache.hash_digest(res_src) != old.hash
+         return False
+ 
+     def filtered_cached(self, sources: Iterable[Path]) -> tuple[set[Path], set[Path]]:
+@@ -139,19 +149,21 @@
+ 
+     def write(self, sources: Iterable[Path]) -> None:
+         """Update the cache file data and write a new cache file."""
+-        self.file_data.update(
+-            **{str(src.resolve()): Cache.get_file_data(src) for src in sources}
+-        )
++        self.file_data.update({
++            str(src.resolve()): Cache.get_file_data(src) for src in sources
++        })
+         try:
+-            self.cache_file.parent.mkdir(parents=True, exist_ok=True)
+-            with tempfile.NamedTemporaryFile(
+-                dir=str(self.cache_file.parent), delete=False
+-            ) as f:
+-                # We store raw tuples in the cache because it's faster.
+-                data: dict[str, tuple[float, int, str]] = {
+-                    k: (*v,) for k, v in self.file_data.items()
+-                }
+-                pickle.dump(data, f, protocol=4)
+-            os.replace(f.name, self.cache_file)
++            self._dump_file_data()
+         except OSError:
+             pass
++
++    def _dump_file_data(self) -> None:
++        """Atomically replace the cache file with the current `file_data`."""
++        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
++        with tempfile.NamedTemporaryFile(
++            dir=str(self.cache_file.parent), delete=False
++        ) as f:
++            # We store raw tuples in the cache because it's faster.
++            data: _RawFileData = {k: (*v,) for k, v in self.file_data.items()}
++            pickle.dump(data, f, protocol=4)
++        os.replace(f.name, self.cache_file)

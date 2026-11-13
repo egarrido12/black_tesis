@@ -1,78 +1,5 @@
-Renaming <lib2to3_parse> to <parse_to_tree> - today 10:23:49 :
+Renaming <lib2to3_parse> to <parse_to_tree> - today 13:58:31 :
 
-
---- a/src/black/__init__.py
-+++ b/src/black/__init__.py
-@@ -70,7 +70,7 @@
-     ASTSafetyError,
-     InvalidInput,
-     SourceASTParseError,
--    lib2to3_parse,
-+    parse_to_tree,
-     parse_ast,
-     stringify_ast,
- )
-@@ -1473,7 +1473,7 @@
-         src_contents.encode("utf-8"), mode, encoding_overwrite="utf-8"
-     )
- 
--    src_node = lib2to3_parse(
-+    src_node = parse_to_tree(
-         normalized_contents.lstrip(), target_versions=mode.target_versions
-     )
- 
-
---- a/src/black/debug.py
-+++ b/src/black/debug.py
-@@ -4,7 +4,7 @@
- 
- from black.nodes import Visitor
- from black.output import out
--from black.parsing import lib2to3_parse
-+from black.parsing import parse_to_tree
- from blib2to3.pgen2 import token
- from blib2to3.pytree import Leaf, Node, type_repr
- 
-@@ -51,5 +51,5 @@
-         """
-         v: DebugVisitor[None] = DebugVisitor()
-         if isinstance(code, str):
--            code = lib2to3_parse(code)
-+            code = parse_to_tree(code)
-         list(v.visit(code))
-
---- a/tests/util.py
-+++ b/tests/util.py
-@@ -58,7 +58,7 @@
-         if conftest.PRINT_FULL_TREE:
-             out("Expected tree:", fg="green")
-         try:
--            exp_node = black.lib2to3_parse(expected)
-+            exp_node = black.parse_to_tree(expected)
-             bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
-             list(bdv.visit(exp_node))
-             expected_out = "\n".join(bdv.list_output)
-@@ -67,7 +67,7 @@
-         if conftest.PRINT_FULL_TREE:
-             out("Actual tree:", fg="red")
-         try:
--            exp_node = black.lib2to3_parse(actual)
-+            exp_node = black.parse_to_tree(actual)
-             bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
-             list(bdv.visit(exp_node))
-             actual_out = "\n".join(bdv.list_output)
-
---- a/src/black/parsing.py
-+++ b/src/black/parsing.py
-@@ -74,7 +74,7 @@
-     return grammars
- 
- 
--def lib2to3_parse(
-+def parse_to_tree(
-     src_txt: str, target_versions: Collection[TargetVersion] = ()
- ) -> Node:
-     """Given a string with source, return the lib2to3 Node."""
 
 --- a/tests/test_black.py
 +++ b/tests/test_black.py
@@ -283,4 +210,77 @@ Renaming <lib2to3_parse> to <parse_to_tree> - today 10:23:49 :
  
          exc_info.match(
              re.escape(
+
+--- a/src/black/parsing.py
++++ b/src/black/parsing.py
+@@ -74,7 +74,7 @@
+     return grammars
+ 
+ 
+-def lib2to3_parse(
++def parse_to_tree(
+     src_txt: str, target_versions: Collection[TargetVersion] = ()
+ ) -> Node:
+     """Given a string with source, return the lib2to3 Node."""
+
+--- a/tests/util.py
++++ b/tests/util.py
+@@ -58,7 +58,7 @@
+         if conftest.PRINT_FULL_TREE:
+             out("Expected tree:", fg="green")
+         try:
+-            exp_node = black.lib2to3_parse(expected)
++            exp_node = black.parse_to_tree(expected)
+             bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+             list(bdv.visit(exp_node))
+             expected_out = "\n".join(bdv.list_output)
+@@ -67,7 +67,7 @@
+         if conftest.PRINT_FULL_TREE:
+             out("Actual tree:", fg="red")
+         try:
+-            exp_node = black.lib2to3_parse(actual)
++            exp_node = black.parse_to_tree(actual)
+             bdv = DebugVisitor(print_output=conftest.PRINT_FULL_TREE)
+             list(bdv.visit(exp_node))
+             actual_out = "\n".join(bdv.list_output)
+
+--- a/src/black/__init__.py
++++ b/src/black/__init__.py
+@@ -70,7 +70,7 @@
+     ASTSafetyError,
+     InvalidInput,
+     SourceASTParseError,
+-    lib2to3_parse,
++    parse_to_tree,
+     parse_ast,
+     stringify_ast,
+ )
+@@ -1473,7 +1473,7 @@
+         src_contents.encode("utf-8"), mode, encoding_overwrite="utf-8"
+     )
+ 
+-    src_node = lib2to3_parse(
++    src_node = parse_to_tree(
+         normalized_contents.lstrip(), target_versions=mode.target_versions
+     )
+ 
+
+--- a/src/black/debug.py
++++ b/src/black/debug.py
+@@ -4,7 +4,7 @@
+ 
+ from black.nodes import Visitor
+ from black.output import out
+-from black.parsing import lib2to3_parse
++from black.parsing import parse_to_tree
+ from blib2to3.pgen2 import token
+ from blib2to3.pytree import Leaf, Node, type_repr
+ 
+@@ -51,5 +51,5 @@
+         """
+         v: DebugVisitor[None] = DebugVisitor()
+         if isinstance(code, str):
+-            code = lib2to3_parse(code)
++            code = parse_to_tree(code)
+         list(v.visit(code))
 

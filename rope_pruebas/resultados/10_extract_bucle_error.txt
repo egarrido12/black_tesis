@@ -1,8 +1,8 @@
 Traceback (most recent call last):
-  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 553, in ejecutar_rope
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 491, in ejecutar_rope
     cambios = funcion(proyecto)
               ^^^^^^^^^^^^^^^^^
-  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 454, in ref_extract_bucle
+  File "/Users/estebangarrido10/black_tesis/rope_pruebas/ejecutar_pruebas_rope.py", line 391, in ref_extract_bucle
     return ExtractMethod(p, r, inicio, fin).get_changes('_collect_sources')
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/Users/estebangarrido10/black_tesis/.venv/lib/python3.12/site-packages/rope/refactor/extract.py", line 82, in get_changes

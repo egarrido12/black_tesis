@@ -1,4 +1,4 @@
-Extract method <_append_diff_lines> - today 10:27:13 :
+Extract method <_append_diff_lines> - today 14:02:14 :
 
 
 --- a/src/black/output.py

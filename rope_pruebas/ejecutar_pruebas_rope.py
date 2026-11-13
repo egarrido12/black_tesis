@@ -18,11 +18,9 @@ Flujo:
      Si los tests siguen pasando, la refactorización preservó el
      comportamiento.
 
-Cada fase se mide con dos trackers de CodeCarbon en paralelo:
-  - "maquina" (tracking_mode='machine'): toda la máquina, incluido el
-    consumo de fondo del sistema operativo y otras aplicaciones.
-  - "proceso" (tracking_mode='process'): solo este proceso de Python y sus
-    hijos (pytest), es decir, lo atribuible al experimento.
+Cada fase se mide con dos trackers de CodeCarbon en paralelo ("maquina" y
+"proceso"), durante la ejecución (serie temporal cada 0,25 s) y al final.
+Ver ../huella_carbono/medicion.py.
 
 El código original en ../src NUNCA se modifica.
 
@@ -31,7 +29,6 @@ Uso (desde la raíz del repositorio):
     .venv/bin/python rope_pruebas/ejecutar_pruebas_rope.py --pais COL --repeticiones 5
 """
 import argparse
-import contextlib
 import json
 import os
 import platform
@@ -44,9 +41,7 @@ import time
 import traceback
 from pathlib import Path
 
-import codecarbon
 import rope
-from codecarbon import OfflineEmissionsTracker
 from rope.base.project import Project
 from rope.contrib import findit, finderrors
 from rope.refactor.extract import ExtractMethod
@@ -61,14 +56,14 @@ RESULTADOS = AQUI / 'resultados'
 CARBONO = RESULTADOS / 'carbono'
 PYTHON = sys.executable
 
+sys.path.insert(0, str(REPO / 'huella_carbono'))
+from medicion import MODOS, Medidor  # noqa: E402
+
 IGNORAR = shutil.ignore_patterns(
     '.git', '.github', '.venv', '.pytest_cache', '.mypy_cache', '.tox',
     '*.egg-info', '__pycache__', '.ropeproject', '.claude', 'rope_pruebas',
-    'llm_pruebas', 'profiling',
+    'llm_pruebas', 'huella_carbono', 'profiling',
 )
-
-# Modos de CodeCarbon que se miden en paralelo (etiqueta -> tracking_mode).
-MODOS = {'maquina': 'machine', 'proceso': 'process'}
 
 # Se fijan en main() a partir de los argumentos.
 PAIS = 'COL'
@@ -171,73 +166,15 @@ def linea_anterior(recurso, offset):
 # ---------------------------------------------------------------------------
 # Medición de huella de carbono (CodeCarbon)
 # ---------------------------------------------------------------------------
+# La lógica está en ../huella_carbono/medicion.py, compartida con llm_pruebas/:
+# además del total de cada fase, guarda la serie temporal de muestras
+# (cada 0,25 s) y los eventos marcados dentro de la fase.
 
-def datos_tracker(d):
-    """Convierte el EmissionsData de CodeCarbon en un dict con unidades útiles."""
-    return {
-        'duracion_s': round(d.duration, 3),
-        'energia_Wh': d.energy_consumed * 1000,
-        'energia_cpu_Wh': d.cpu_energy * 1000,
-        'energia_ram_Wh': d.ram_energy * 1000,
-        'emisiones_mgCO2eq': d.emissions * 1e6,
-        'potencia_cpu_W': d.cpu_power,
-        'potencia_ram_W': d.ram_power,
-        'agua_L': getattr(d, 'water_consumed', None),
-    }
+MEDIDOR = None  # se crea en main() con el país elegido
 
 
-@contextlib.contextmanager
-def medir(nombre, registro):
-    """Mide la energía y emisiones del bloque `with` con los dos modos.
-
-    Al salir, `registro` queda con una clave por modo ('maquina', 'proceso').
-    Cada medición se agrega también a resultados/carbono/emisiones_<modo>.csv,
-    el CSV estándar de CodeCarbon.
-    """
-    trackers = {
-        etiqueta: OfflineEmissionsTracker(
-            project_name=nombre,
-            country_iso_code=PAIS,
-            tracking_mode=modo,
-            measure_power_secs=1,
-            output_dir=str(CARBONO),
-            output_file='emisiones_%s.csv' % etiqueta,
-            save_to_file=True,
-            log_level='error',
-            allow_multiple_runs=True,
-        )
-        for etiqueta, modo in MODOS.items()
-    }
-    for t in trackers.values():
-        t.start()
-    try:
-        yield registro
-    finally:
-        for etiqueta, t in trackers.items():
-            t.stop()
-            registro[etiqueta] = datos_tracker(t.final_emissions_data)
-
-
-def info_carbono():
-    """Metadatos de la medición (hardware detectado, factor de emisión)."""
-    t = OfflineEmissionsTracker(country_iso_code=PAIS, save_to_file=False,
-                                log_level='error', allow_multiple_runs=True)
-    t.start()
-    time.sleep(1)
-    t.stop()
-    d = t.final_emissions_data
-    return {
-        'codecarbon': codecarbon.__version__,
-        'pais': d.country_name,
-        'pais_iso': PAIS,
-        'intensidad_gCO2eq_kWh': round(d.emissions / d.energy_consumed * 1000, 3),
-        'cpu': d.cpu_model,
-        'cpu_count': d.cpu_count,
-        'ram_GB': round(d.ram_total_size, 1),
-        'os': d.os,
-        'metodo_cpu': 'cpu_load (TDP x carga de CPU; sin sensores de energía)',
-        'measure_power_secs': 1,
-    }
+def medir(nombre, registro, **opciones):
+    return MEDIDOR.medir(nombre, registro, **opciones)
 
 
 def reposo():
@@ -547,14 +484,18 @@ def ejecutar_rope(nombre, funcion):
     carpeta = copia_limpia(nombre)
     med, cambios, error = {}, None, None
     t0 = time.perf_counter()
-    with medir(nombre + '_rope', med):
+    with medir(nombre + '_rope', med) as m:
         proyecto = abrir_proyecto(carpeta)
+        m.marcar('proyecto_abierto')
         try:
             cambios = funcion(proyecto)
+            m.marcar('cambios_calculados')
             proyecto.do(cambios)
+            m.marcar('cambios_aplicados')
         except Exception as e:
             error = e
             traza = traceback.format_exc()
+            m.marcar('error', type(e).__name__)
         proyecto.close()
     tiempo = time.perf_counter() - t0
     if error is not None:
@@ -645,9 +586,13 @@ def escribir_huella(info, med_reposo, med_base, analisis, filas, med_total):
         '- Método de CPU: %s' % info['metodo_cpu'],
         '- Repeticiones de cada operación de Rope: %d' % REPETICIONES,
         '- Fecha: %s' % time.strftime('%Y-%m-%d %H:%M'), '',
+        '- Intervalo de muestreo: %s s (1 s para el experimento completo)' % info['intervalo_muestreo_s'], '',
         'Unidades: energía en **Wh** (1 Wh = 0,001 kWh); emisiones en **mg de CO2 '
         'equivalente** (1 g = 1000 mg). "Máquina" = toda la computadora; '
         '"Proceso" = solo el proceso del experimento y sus hijos.', '',
+        'Lo que pasa **durante** cada fase está en `serie_temporal_maquina.csv` y '
+        '`serie_temporal_proceso.csv` (una fila por muestra) y en `eventos.csv` '
+        '(momentos marcados dentro de cada operación de Rope).', '',
         '## Fases de referencia', '',
         '| Fase | Duración (s) | Energía máquina (Wh) | Emisiones máquina (mg) | Energía proceso (Wh) | Emisiones proceso (mg) |',
         '|---|---|---|---|---|---|',
@@ -704,7 +649,7 @@ def escribir_huella(info, med_reposo, med_base, analisis, filas, med_total):
 
 
 def main():
-    global PAIS, REPETICIONES, SEGUNDOS_REPOSO
+    global PAIS, REPETICIONES, SEGUNDOS_REPOSO, MEDIDOR
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--pais', default=PAIS,
                         help='código ISO-3 del país para el factor de emisión (por defecto COL)')
@@ -720,12 +665,15 @@ def main():
     for viejo in RESULTADOS.iterdir():
         viejo.unlink()
     CARBONO.mkdir()
+    MEDIDOR = Medidor(CARBONO, pais=PAIS)
 
-    info = info_carbono()
+    info = MEDIDOR.info()
     print('[carbono] %s' % info)
     med_reposo = reposo()
     med_total = {}
-    with medir('experimento_completo', med_total):
+    # El tracker del experimento completo muestrea cada 1 s (no hace falta más
+    # detalle y así no se suman tantos hilos de medición a los de cada fase).
+    with medir('experimento_completo', med_total, intervalo_s=1):
         base, med_base = linea_base()
         analisis = analisis_estatico()
         filas = [aplicar(*r, base=base) for r in REFACTORIZACIONES]

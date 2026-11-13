@@ -1,65 +1,5 @@
-Renaming <dump_to_file> to <write_to_temp_file> - today 10:29:07 :
+Renaming <dump_to_file> to <write_to_temp_file> - today 14:04:10 :
 
-
---- a/src/black/__init__.py
-+++ b/src/black/__init__.py
-@@ -65,7 +65,7 @@
- from black.mode import Mode as Mode  # re-exported
- from black.mode import Preview, TargetVersion, supports_feature
- from black.nodes import STARS, is_number_token, is_simple_decorator_expression, syms
--from black.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
-+from black.output import color_diff, diff, write_to_temp_file, err, ipynb_diff, out
- from black.parsing import (  # noqa F401
-     ASTSafetyError,
-     InvalidInput,
-@@ -1417,7 +1417,7 @@
-             # Black produced the invalid code, not the user. Reported as an
-             # internal error rather than as a syntax error in the user's file,
-             # keeping the parse location, which points into Black's output.
--            log = dump_to_file(dst_contents)
-+            log = write_to_temp_file(dst_contents)
-             exc.context = (
-                 f"INTERNAL ERROR: {_black_info()} produced invalid code:\n"
-                 f"{exc.context or 'cannot parse'}"
-@@ -1894,7 +1894,7 @@
-     try:
-         dst_ast = parse_ast(dst)
-     except Exception as exc:
--        log = dump_to_file("".join(traceback.format_tb(exc.__traceback__)), dst)
-+        log = write_to_temp_file("".join(traceback.format_tb(exc.__traceback__)), dst)
-         raise ASTSafetyError(
-             f"INTERNAL ERROR: {_black_info()} produced invalid code: {exc}. "
-             "Please report a bug on https://github.com/psf/black/issues.  "
-@@ -1904,7 +1904,7 @@
-     src_ast_str = "\n".join(stringify_ast(src_ast))
-     dst_ast_str = "\n".join(stringify_ast(dst_ast))
-     if src_ast_str != dst_ast_str:
--        log = dump_to_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
-+        log = write_to_temp_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
-         raise ASTSafetyError(
-             f"INTERNAL ERROR: {_black_info()} produced code that is not equivalent to"
-             " the source.  Please report a bug on https://github.com/psf/black/issues."
-@@ -1928,7 +1928,7 @@
-     # versions.
-     newdst = _format_str_once(dst, mode=mode, lines=lines)
-     if dst != newdst:
--        log = dump_to_file(
-+        log = write_to_temp_file(
-             str(mode),
-             diff(src, dst, "source", "first pass"),
-             diff(dst, newdst, "first pass", "second pass"),
-
---- a/src/black/output.py
-+++ b/src/black/output.py
-@@ -123,7 +123,7 @@
- 
- 
- @mypyc_attr(patchable=True)
--def dump_to_file(*output: str, ensure_final_newline: bool = True) -> str:
-+def write_to_temp_file(*output: str, ensure_final_newline: bool = True) -> str:
-     """Dump `output` to a temporary file. Return path to the file."""
-     with tempfile.NamedTemporaryFile(
-         mode="w", prefix="blk_", suffix=".log", delete=False, encoding="utf8"
 
 --- a/tests/test_format.py
 +++ b/tests/test_format.py
@@ -229,4 +169,64 @@ Renaming <dump_to_file> to <write_to_temp_file> - today 10:29:07 :
          diff_header = re.compile(
              rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
              r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d\+\d\d:\d\d"
+
+--- a/src/black/__init__.py
++++ b/src/black/__init__.py
+@@ -65,7 +65,7 @@
+ from black.mode import Mode as Mode  # re-exported
+ from black.mode import Preview, TargetVersion, supports_feature
+ from black.nodes import STARS, is_number_token, is_simple_decorator_expression, syms
+-from black.output import color_diff, diff, dump_to_file, err, ipynb_diff, out
++from black.output import color_diff, diff, write_to_temp_file, err, ipynb_diff, out
+ from black.parsing import (  # noqa F401
+     ASTSafetyError,
+     InvalidInput,
+@@ -1417,7 +1417,7 @@
+             # Black produced the invalid code, not the user. Reported as an
+             # internal error rather than as a syntax error in the user's file,
+             # keeping the parse location, which points into Black's output.
+-            log = dump_to_file(dst_contents)
++            log = write_to_temp_file(dst_contents)
+             exc.context = (
+                 f"INTERNAL ERROR: {_black_info()} produced invalid code:\n"
+                 f"{exc.context or 'cannot parse'}"
+@@ -1894,7 +1894,7 @@
+     try:
+         dst_ast = parse_ast(dst)
+     except Exception as exc:
+-        log = dump_to_file("".join(traceback.format_tb(exc.__traceback__)), dst)
++        log = write_to_temp_file("".join(traceback.format_tb(exc.__traceback__)), dst)
+         raise ASTSafetyError(
+             f"INTERNAL ERROR: {_black_info()} produced invalid code: {exc}. "
+             "Please report a bug on https://github.com/psf/black/issues.  "
+@@ -1904,7 +1904,7 @@
+     src_ast_str = "\n".join(stringify_ast(src_ast))
+     dst_ast_str = "\n".join(stringify_ast(dst_ast))
+     if src_ast_str != dst_ast_str:
+-        log = dump_to_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
++        log = write_to_temp_file(diff(src_ast_str, dst_ast_str, "src", "dst"))
+         raise ASTSafetyError(
+             f"INTERNAL ERROR: {_black_info()} produced code that is not equivalent to"
+             " the source.  Please report a bug on https://github.com/psf/black/issues."
+@@ -1928,7 +1928,7 @@
+     # versions.
+     newdst = _format_str_once(dst, mode=mode, lines=lines)
+     if dst != newdst:
+-        log = dump_to_file(
++        log = write_to_temp_file(
+             str(mode),
+             diff(src, dst, "source", "first pass"),
+             diff(dst, newdst, "first pass", "second pass"),
+
+--- a/src/black/output.py
++++ b/src/black/output.py
+@@ -123,7 +123,7 @@
+ 
+ 
+ @mypyc_attr(patchable=True)
+-def dump_to_file(*output: str, ensure_final_newline: bool = True) -> str:
++def write_to_temp_file(*output: str, ensure_final_newline: bool = True) -> str:
+     """Dump `output` to a temporary file. Return path to the file."""
+     with tempfile.NamedTemporaryFile(
+         mode="w", prefix="blk_", suffix=".log", delete=False, encoding="utf8"
 
